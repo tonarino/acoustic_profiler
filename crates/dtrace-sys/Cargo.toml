@@ -1,0 +1,10 @@
+[package]
+name = "dtrace-sys"
+version = "0.1.0"
+authors = ["Ryo Kawaguchi <ryo@kawagu.ch>"]
+edition = "2021"
+
+[build-dependencies]
+bindgen = "0"
+
+[dependencies]
