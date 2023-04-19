@@ -1,0 +1,12 @@
+[workspace]
+members = [
+    "crates/dtrace-sys",
+]
+
+# Specify a subset of member crates that compile on all supported architectures.
+default-members = [
+]
+
+# Explicitly set resolver due to virtual workspace, see
+# https://doc.rust-lang.org/edition-guide/rust-2021/default-cargo-resolver.html
+resolver = "2"
