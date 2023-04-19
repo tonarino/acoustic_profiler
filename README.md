@@ -38,7 +38,7 @@ Every probe should fit into these limits and every sound-effect should account f
 
 ## Implementation
 
-Each probe be individual binary that connects and streams the events to a server over UDP serialized as bincode. The address of the server is passed to the probe with command-line arguments. The probe should aggregate the events to ensure it fits into the above range. Probes are free to send multiple type of events.
+Each probe is an individual binary that connects and streams the events to a server over UDP serialized as bincode. The address of the server is passed to the probe with command-line arguments. The probe should aggregate the events to ensure it fits into the above range. Probes are free to send multiple types of events.
 
 The server is a binary that accepts events and assigns a sound effect to every event type it receives. This mapping is set statically in code. Later we can let it be configured with command line options or config file.
 
