@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "crates/dtrace-sys",
+    "crates/rustrace",
 ]
 
 # Specify a subset of member crates that compile on all supported architectures.

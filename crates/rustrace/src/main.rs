@@ -64,6 +64,6 @@ fn trace_child(child: i32) -> Result<()> {
 fn run_command_to_trace(cmd: &str) -> Result<()> {
     let command_arguments = cmd.split_whitespace().collect::<Vec<_>>();
     traceme()?;
-    let err = exec::execvp(command_arguments[0], &command_arguments[1..]);
+    let err = exec::execvp(command_arguments[0], &command_arguments);
     return Err(anyhow!("{err}"));
 }
