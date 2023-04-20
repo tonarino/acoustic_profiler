@@ -21,7 +21,7 @@ fn main() -> Result<()> {
             let (number_of_bytes, _) = socket.recv_from(&mut buf)?;
 
             let event: Event = bincode::deserialize(&buf)?;
-            println!("received a event ({number_of_bytes} bytes): {:?}", event);
+            println!("Received an event ({number_of_bytes} bytes): {:?}", event);
 
             // FIXME: do the decoding and file reading outside the loop
             let file = BufReader::new(File::open("src/sound_samples/click.wav")?);
