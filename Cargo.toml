@@ -7,6 +7,8 @@ members = [
 
 # Specify a subset of member crates that compile on all supported architectures.
 default-members = [
+    "crates/composer",
+    "crates/test_probe",
 ]
 
 # Explicitly set resolver due to virtual workspace, see
