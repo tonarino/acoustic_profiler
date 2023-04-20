@@ -1,6 +1,8 @@
 [workspace]
 members = [
     "crates/dtrace-sys",
+    "crates/composer",
+    "crates/test_probe",
 ]
 
 # Specify a subset of member crates that compile on all supported architectures.
