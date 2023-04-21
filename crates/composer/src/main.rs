@@ -16,8 +16,8 @@ fn main() -> Result<()> {
 
     loop {
         if let Err(err) = {
-            // Should be more than enough.
-            let mut buf = [0; 1000];
+            // Size up to max normal network packet size should be enough
+            let mut buf = [0; 1500];
             let (number_of_bytes, _) = socket.recv_from(&mut buf)?;
 
             let event: Event = bincode::deserialize(&buf)?;
