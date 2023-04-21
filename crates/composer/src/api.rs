@@ -22,7 +22,7 @@ impl Client {
     }
 
     pub fn send(&self, event: &Event) -> Result<()> {
-        let data = bincode::serialize(&event)?;
+        let data = bincode::serialize(event)?;
         self.socket.send(&data)?;
         Ok(())
     }
