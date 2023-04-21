@@ -13,22 +13,18 @@ fn main() -> Result<()> {
     };
 
     let event = Event::TestTick;
-    let delays = {
-        let min_delay = 5;
-        let max_delay = 250;
-        let step = 10;
-        // Tick fast, then slow, and then fast again
-        (min_delay..max_delay)
-            .step_by(step)
-            .chain((min_delay..max_delay).step_by(step).rev())
-    };
 
-    loop {
-        for delay in delays.clone() {
-            if let Err(err) = client.send(&event) {
-                eprintln!("Could not send event {:?}", err)
-            };
-            thread::sleep(Duration::from_millis(delay.try_into().unwrap()));
-        }
+    // u64 taken by `from_millis` doesn't implement DoubleEndedIterator needed by `rev`
+    // Use u32 explicitly and convert to u64.
+    let slowdown = (5u32..200).step_by(5);
+    let speedup = slowdown.clone().rev();
+
+    for delay_ms in speedup.chain(slowdown).cycle() {
+        if let Err(err) = client.send(&event) {
+            eprintln!("Could not send event {:?}", err)
+        };
+        thread::sleep(Duration::from_millis(delay_ms.into()));
     }
+
+    unreachable!()
 }
