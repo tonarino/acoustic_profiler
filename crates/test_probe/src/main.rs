@@ -7,10 +7,11 @@ fn main() -> Result<()> {
 
     // Get server address, if given
     let args: Vec<String> = env::args().collect();
-    let arg = args.get(1);
-    let server_address: Option<&str> = arg.map(|x: &String| x.as_str());
+    let client = match args.get(1) {
+        Some(address) => Client::new(address)?,
+        None => Client::try_default()?,
+    };
 
-    let client = Client::new(server_address)?;
     let event = Event::TestTick;
     let delays = {
         let min_delay = 5;

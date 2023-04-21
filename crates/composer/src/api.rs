@@ -1,6 +1,6 @@
 use eyre::Result;
 use serde::{Deserialize, Serialize};
-use std::net::UdpSocket;
+use std::net::{ToSocketAddrs, UdpSocket};
 
 pub const DEFAULT_SERVER_ADDRESS: &str = "localhost:8888";
 
@@ -14,9 +14,13 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(server_address: Option<&str>) -> Result<Self> {
+    pub fn try_default() -> Result<Self> {
+        Self::new(DEFAULT_SERVER_ADDRESS)
+    }
+
+    pub fn new(server_address: impl ToSocketAddrs) -> Result<Self> {
         let socket = UdpSocket::bind("localhost:0")?;
-        socket.connect(server_address.unwrap_or(DEFAULT_SERVER_ADDRESS))?;
+        socket.connect(server_address)?;
 
         Ok(Self { socket })
     }
