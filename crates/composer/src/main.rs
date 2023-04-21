@@ -30,7 +30,7 @@ fn main() -> Result<()> {
 
             Ok::<(), eyre::Error>(())
         } {
-            eprintln!("Could not process data-gram: {:?}", err);
+            eprintln!("Could not process data-gram: {:?}. Ignoring and continuing.", err);
             continue;
         }
     }
