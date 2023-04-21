@@ -1,4 +1,4 @@
-# Runs cargo check, test, fmt and clippy on every push for default members.
+# Runs cargo test, fmt and clippy on every push for default members.
 # Based on https://github.com/actions-rs/meta/blob/master/recipes/quickstart.md
 
 on: [push]
@@ -57,3 +57,4 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clippy
+          args: --all-targets --all-features -- -D warnings
