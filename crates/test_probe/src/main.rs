@@ -26,5 +26,7 @@ fn main() -> Result<()> {
         thread::sleep(Duration::from_millis(delay_ms.into()));
     }
 
+    // TODO: Result<!> isn't supported yet. Change the return type and remove
+    // this once it is. https://github.com/rust-lang/rust/issues/35121
     unreachable!()
 }
