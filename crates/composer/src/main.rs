@@ -30,7 +30,7 @@ fn handle_datagram(socket: &UdpSocket, output_stream: &OutputStreamHandle) -> Re
     let mut buf = [0; 1500];
     let (number_of_bytes, _) = socket.recv_from(&mut buf)?;
 
-    let event: Event = bincode::deserialize(&buf)?;
+    let event: Event = bincode::deserialize(&buf[..number_of_bytes])?;
     println!("Received an event ({number_of_bytes} bytes): {:?}", event);
 
     // FIXME: do the decoding and file reading outside the loop
