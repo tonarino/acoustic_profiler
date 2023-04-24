@@ -2,10 +2,7 @@ use clap::Parser;
 use composer::api::{Client, Event};
 use eyre::Result;
 use nix::{
-    sys::{
-        ptrace::{self, Options},
-        wait::waitpid,
-    },
+    sys::{ptrace, wait::waitpid},
     unistd::Pid,
 };
 use syscalls::Sysno;
@@ -33,9 +30,10 @@ fn main() -> Result<()> {
     ptrace::attach(pid)?;
     waitpid(Some(pid), None)?;
     loop {
-        if let Some(event) = handle_syscall(pid)? {
-            println!("{event:?}");
-        }
+        let Some(event) = handle_syscall(pid)? else { continue; };
+        if let Err(err) = client.send(&event) {
+            eprintln!("Could not send event {:?}", err)
+        };
     }
 }
 
