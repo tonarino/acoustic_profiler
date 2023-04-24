@@ -4,6 +4,7 @@ members = [
     "crates/composer_api",
     "crates/dtrace",
     "crates/dtrace-sys",
+    "crates/dtrace_probe",
     "crates/test_probe",
     "crates/tick_probe",
     "crates/ptrace_probe",

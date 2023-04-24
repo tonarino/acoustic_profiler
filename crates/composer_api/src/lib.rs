@@ -15,8 +15,16 @@ pub const DEFAULT_SERVER_ADDRESS: &str = "localhost:8888";
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Event {
     TestTick,
-    StdoutWrite { length: usize },
-    StderrWrite { length: usize },
+    StdoutWrite {
+        length: usize,
+    },
+    StderrWrite {
+        length: usize,
+    },
+    /// A single file system read syscall invocation.
+    FileSystemRead,
+    /// A single file system write syscall invocation.
+    FileSystemWrite,
     LogStats(LogStats),
 }
 
