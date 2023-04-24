@@ -1,0 +1,9 @@
+[package]
+name = "test_probe"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+color-eyre = "0.6"
+composer = { path = "../composer" }
+eyre = "0.6"
