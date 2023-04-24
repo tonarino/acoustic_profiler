@@ -10,10 +10,10 @@ use syscalls::Sysno;
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// PID to attach to and trace
+    /// PID to attach to and trace.
     pid: u32,
 
-    /// Server address to receive events
+    /// Server address to receive events.
     address: Option<String>,
 }
 
@@ -25,7 +25,7 @@ fn main() -> Result<()> {
     let client = args
         .address
         .map(Client::new)
-        .unwrap_or(Client::try_default())?;
+        .unwrap_or_else(Client::try_default)?;
 
     ptrace::attach(pid)?;
     waitpid(Some(pid), None)?;
