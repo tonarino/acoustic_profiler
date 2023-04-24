@@ -225,7 +225,10 @@ mod tests {
         dtrace.execute_program(&format!("syscall:::entry {{}}"), &[("bufsize", &"1k")])?;
 
         let mut probes = Vec::default();
-        assert_eq!(ProgramStatus::Ongoing, dtrace.wait_and_consume(&mut probes)?);
+        assert_eq!(
+            ProgramStatus::Ongoing,
+            dtrace.wait_and_consume(&mut probes)?
+        );
         assert!(0 < probes.len());
 
         dtrace.stop()?;
