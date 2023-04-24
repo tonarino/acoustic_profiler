@@ -1,4 +1,4 @@
-use composer::api::{Client, Event};
+use composer_api::{Client, Event};
 use eyre::Result;
 use std::{env, thread, time::Duration};
 
