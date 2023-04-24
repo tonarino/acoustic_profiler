@@ -1,12 +1,14 @@
 [workspace]
 members = [
-    "crates/dtrace-sys",
     "crates/composer",
+    "crates/composer_api",
+    "crates/dtrace-sys",
     "crates/test_probe",
 ]
 
 # Specify a subset of member crates that compile on all supported architectures.
 default-members = [
+    "crates/composer_api",
     "crates/composer",
     "crates/test_probe",
 ]

@@ -1,5 +1,5 @@
-use composer::api::Event;
-use composer::api::DEFAULT_SERVER_ADDRESS;
+use composer_api::Event;
+use composer_api::DEFAULT_SERVER_ADDRESS;
 use eyre::Result;
 use rodio::{source::Source, Decoder, OutputStream, OutputStreamHandle};
 use std::fs::File;
