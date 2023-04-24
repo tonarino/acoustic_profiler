@@ -2,6 +2,7 @@
 members = [
     "crates/composer",
     "crates/composer_api",
+    "crates/dtrace",
     "crates/dtrace-sys",
     "crates/test_probe",
 ]
