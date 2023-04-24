@@ -7,8 +7,8 @@ edition = "2021"
 color-eyre = "0.6"
 composer = { path = "../composer" }
 eyre = "0.6"
-clap = { version = "*", features = ["derive"] }
-fork = "0.1.21"
-nix = "*"
-exec = "*"
-syscalls = "*"
+clap = { version = "4.2", features = ["derive"] }
+fork = "0.1"
+nix = "0.24"
+exec = "0.3"
+syscalls = "0.6"
