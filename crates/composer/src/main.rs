@@ -20,7 +20,6 @@ fn main() -> Result<()> {
                 "Could not process datagram. Ignoring and continuing. {:?}",
                 err
             );
-            continue;
         }
     }
 }
