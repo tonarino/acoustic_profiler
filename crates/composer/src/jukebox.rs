@@ -1,4 +1,4 @@
-use eyre::Result;
+use eyre::{Context, Result};
 use rodio::{
     source::{Buffered, SamplesConverter},
     Decoder, OutputStreamHandle, Source,
@@ -34,8 +34,9 @@ impl Jukebox {
             .iter()
             .map(|&sample| -> Result<(Sample, Buffer)> {
                 let path = base_path.join(sample.filename());
-                let file = BufReader::new(File::open(path)?);
-                let source = Decoder::new(file)?;
+                let file =
+                    BufReader::new(File::open(&path).with_context(|| format!("opening {path:?}"))?);
+                let source = Decoder::new(file).with_context(|| format!("decoding {path:?}"))?;
 
                 Ok((sample, source.convert_samples().buffered()))
             })
@@ -51,7 +52,9 @@ impl Jukebox {
             .find(|(s, _)| *s == sample)
             .expect("programmer error, all possible samples should be loaded");
 
-        output_stream.play_raw(buffer.clone())?;
+        output_stream
+            .play_raw(buffer.clone())
+            .with_context(|| format!("playing sample {sample:?}"))?;
         Ok(())
     }
 }

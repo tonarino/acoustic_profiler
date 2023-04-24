@@ -2,7 +2,7 @@
 
 use crate::jukebox::{Jukebox, Sample};
 use composer_api::{Event, DEFAULT_SERVER_ADDRESS};
-use eyre::Result;
+use eyre::{Context, Result};
 use rodio::{OutputStream, OutputStreamHandle};
 use std::net::UdpSocket;
 
@@ -16,7 +16,7 @@ fn main() -> Result<()> {
 
     let (_stream, stream_handle) = OutputStream::try_default()?;
 
-    let jukebox = Jukebox::new()?;
+    let jukebox = Jukebox::new().context("loading records into jukebox")?;
     loop {
         if let Err(err) = handle_datagram(&socket, &stream_handle, &jukebox) {
             eprintln!("Could not process datagram. Ignoring and continuing. {:?}", err);
