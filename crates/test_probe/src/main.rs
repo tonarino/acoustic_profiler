@@ -1,3 +1,5 @@
+#![warn(clippy::all, clippy::clone_on_ref_ptr)]
+
 use composer_api::{Client, Event};
 use eyre::Result;
 use std::{env, thread, time::Duration};

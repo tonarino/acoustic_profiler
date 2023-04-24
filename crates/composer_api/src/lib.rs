@@ -1,3 +1,5 @@
+#![warn(clippy::all, clippy::clone_on_ref_ptr)]
+
 use eyre::Result;
 use serde::{Deserialize, Serialize};
 use std::net::{ToSocketAddrs, UdpSocket};

@@ -1,10 +1,9 @@
-use composer_api::Event;
-use composer_api::DEFAULT_SERVER_ADDRESS;
+#![warn(clippy::all, clippy::clone_on_ref_ptr)]
+
+use composer_api::{Event, DEFAULT_SERVER_ADDRESS};
 use eyre::Result;
 use rodio::{source::Source, Decoder, OutputStream, OutputStreamHandle};
-use std::fs::File;
-use std::io::BufReader;
-use std::net::UdpSocket;
+use std::{fs::File, io::BufReader, net::UdpSocket};
 
 fn main() -> Result<()> {
     color_eyre::install()?;
@@ -16,10 +15,7 @@ fn main() -> Result<()> {
 
     loop {
         if let Err(err) = handle_datagram(&socket, &stream_handle) {
-            eprintln!(
-                "Could not process datagram. Ignoring and continuing. {:?}",
-                err
-            );
+            eprintln!("Could not process datagram. Ignoring and continuing. {:?}", err);
         }
     }
 }
