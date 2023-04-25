@@ -2,9 +2,12 @@
 
 use eyre::{eyre, Result};
 use serde::{Deserialize, Serialize};
-use std::net::{
-    SocketAddr::{V4, V6},
-    ToSocketAddrs, UdpSocket,
+use std::{
+    net::{
+        SocketAddr::{V4, V6},
+        ToSocketAddrs, UdpSocket,
+    },
+    time::Duration,
 };
 
 pub const DEFAULT_SERVER_ADDRESS: &str = "localhost:8888";
@@ -14,6 +17,20 @@ pub enum Event {
     TestTick,
     StdoutWrite { length: usize },
     StderrWrite { length: usize },
+    LogStats(LogStats),
+}
+
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct LogStats {
+    // Duration covered by this report.
+    pub span: Duration,
+
+    // Number of records of each kind.
+    pub error_records: u32,
+    pub warn_records: u32,
+    pub info_records: u32,
+    pub debug_records: u32,
+    pub trace_records: u32,
 }
 
 pub struct Client {

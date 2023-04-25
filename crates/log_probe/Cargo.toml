@@ -1,0 +1,11 @@
+[package]
+name = "log_probe"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4"
+composer_api = { path = "../composer_api" }
+thiserror = "1.0.40"
