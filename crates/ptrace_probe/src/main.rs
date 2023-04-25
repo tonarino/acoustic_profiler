@@ -1,5 +1,5 @@
 use clap::Parser;
-use composer::api::{Client, Event};
+use composer_api::{Client, Event};
 use eyre::Result;
 use nix::{
     sys::{ptrace, wait::waitpid},
