@@ -38,6 +38,9 @@ fn handle_datagram(
 
     let sample = match event {
         Event::TestTick => Sample::Click,
+
+        // TODO(Matej): add different sounds for these, and vary some their quality based on length.
+        Event::StderrWrite { length: _ } | Event::StdoutWrite { length: _ } => Sample::Click,
     };
     jukebox.play(output_stream, sample)?;
 
