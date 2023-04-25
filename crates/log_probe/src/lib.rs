@@ -3,7 +3,7 @@ use log::{self, Level};
 use std::{
     sync::{
         atomic::{AtomicBool, Ordering},
-        mpsc::{channel, Sender},
+        mpsc::{sync_channel, Receiver, SyncSender},
         Arc,
     },
     time::{Duration, Instant},
@@ -17,7 +17,7 @@ pub enum LogProbeError {
 }
 
 pub struct LogProbe {
-    tx: Sender<AggregatorMessage>,
+    tx: SyncSender<AggregatorMessage>,
     shutdown: Arc<AtomicBool>,
 }
 
@@ -45,7 +45,7 @@ impl LogProbe {
         }
         .map_err(|e| LogProbeError::NetworkError(format!("{e}")))?;
 
-        let (tx, rx) = channel::<AggregatorMessage>();
+        let (tx, rx) = sync_channel::<AggregatorMessage>(100);
         spawn_aggregator_thread(rx, client, shutdown.clone());
         spawn_tick_thread(tx.clone(), shutdown.clone(), report_frequency);
 
@@ -54,7 +54,7 @@ impl LogProbe {
 }
 
 fn spawn_tick_thread(
-    tx: Sender<AggregatorMessage>,
+    tx: SyncSender<AggregatorMessage>,
     shutdown: Arc<AtomicBool>,
     report_frequency: Duration,
 ) {
@@ -62,7 +62,7 @@ fn spawn_tick_thread(
         let start = Instant::now();
         for deadline in (0..).map(|i| start + i * report_frequency) {
             if let Err(e) = tx.send(AggregatorMessage::Tick) {
-                eprintln!("Failed to communicate with aggregator thread.")
+                eprintln!("Failed to communicate with aggregator thread: {e}")
             }
 
             if shutdown.load(Ordering::Relaxed) {
@@ -75,7 +75,7 @@ fn spawn_tick_thread(
 }
 
 fn spawn_aggregator_thread(
-    rx: std::sync::mpsc::Receiver<AggregatorMessage>,
+    rx: Receiver<AggregatorMessage>,
     client: Client,
     shutdown: Arc<AtomicBool>,
 ) {
@@ -113,14 +113,16 @@ fn add_record(log_stats: &mut LogStats, record_level: Level) {
     }
 }
 
-// impl log::Log for LogProbe {
-//     fn enabled(&self, metadata: &log::Metadata) -> bool {
-//         metadata.level() <= Level::Info
-//     }
+impl log::Log for LogProbe {
+    fn enabled(&self, _metadata: &log::Metadata) -> bool {
+        true
+    }
 
-//     fn log(&self, record: &log::Record) {
-//         todo!()
-//     }
+    fn log(&self, record: &log::Record) {
+        if let Err(e) = self.tx.send(AggregatorMessage::AddRecord(record.level())) {
+            eprintln!("Failed to communicate with aggregator thread: {e}")
+        };
+    }
 
-//     fn flush(&self) {}
-// }
+    fn flush(&self) {}
+}
