@@ -1,6 +1,7 @@
 #![warn(clippy::all, clippy::clone_on_ref_ptr)]
 
 use crate::jukebox::{Jukebox, Sample};
+use clap::Parser;
 use composer_api::{Event, DEFAULT_SERVER_ADDRESS};
 use eyre::{Context, Result};
 use rodio::{OutputStream, OutputStreamHandle};
@@ -8,10 +9,19 @@ use std::net::UdpSocket;
 
 mod jukebox;
 
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// the address to listen on for incoming events
+    address: Option<String>,
+}
+
 fn main() -> Result<()> {
     color_eyre::install()?;
 
-    let socket = UdpSocket::bind(DEFAULT_SERVER_ADDRESS)?;
+    let args = Args::parse();
+
+    let socket = UdpSocket::bind(args.address.as_deref().unwrap_or(DEFAULT_SERVER_ADDRESS))?;
     println!("Listening on {}", socket.local_addr()?);
 
     let (_stream, stream_handle) = OutputStream::try_default()?;

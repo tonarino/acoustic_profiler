@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 bincode = "1"
+clap = { version = "4.2", features = ["derive"] }
 color-eyre = "0.6"
 composer_api = { path = "../composer_api" }
 eyre = "0.6"
