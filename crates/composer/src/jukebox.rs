@@ -3,9 +3,9 @@ use rodio::{
     source::{Buffered, SamplesConverter},
     Decoder, OutputStreamHandle, Source,
 };
-use std::{fs::File, io::BufReader, path::Path};
+use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum Sample {
     Click,
 }
@@ -24,7 +24,7 @@ type Buffer = Buffered<SamplesConverter<Decoder<BufReader<File>>, f32>>;
 
 /// Records (samples) are loaded to the jukebox once, and then in can quickly play any of them.
 pub struct Jukebox {
-    samples: Vec<(Sample, Buffer)>,
+    samples: HashMap<Sample, Buffer>,
 }
 
 impl Jukebox {
@@ -40,16 +40,16 @@ impl Jukebox {
 
                 Ok((sample, source.convert_samples().buffered()))
             })
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<Result<_>>()
+            .context("loading records")?;
 
         Ok(Self { samples })
     }
 
     pub(crate) fn play(&self, output_stream: &OutputStreamHandle, sample: Sample) -> Result<()> {
-        let (_, buffer) = self
+        let buffer = self
             .samples
-            .iter()
-            .find(|(s, _)| *s == sample)
+            .get(&sample)
             .expect("programmer error, all possible samples should be loaded");
 
         output_stream

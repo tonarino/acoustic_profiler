@@ -16,7 +16,7 @@ fn main() -> Result<()> {
 
     let (_stream, stream_handle) = OutputStream::try_default()?;
 
-    let jukebox = Jukebox::new().context("loading records into jukebox")?;
+    let jukebox = Jukebox::new().context("creating jukebox")?;
     loop {
         if let Err(err) = handle_datagram(&socket, &stream_handle, &jukebox) {
             eprintln!("Could not process datagram. Ignoring and continuing. {:?}", err);
