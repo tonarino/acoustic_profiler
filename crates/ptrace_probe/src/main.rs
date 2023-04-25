@@ -50,12 +50,12 @@ fn handle_syscall(pid: Pid) -> Result<Option<Event>, color_eyre::Report> {
     waitpid(Some(pid), None)?;
 
     match (syscall, rdi) {
-        (Sysno::write, 1) => Ok(Some(Event::StdoutWrite {
-            length: ptrace::getregs(pid)?.rax as usize,
-        })),
-        (Sysno::write, 2) => Ok(Some(Event::StderrWrite {
-            length: ptrace::getregs(pid)?.rax as usize,
-        })),
+        (Sysno::write, 1) => {
+            Ok(Some(Event::StdoutWrite { length: ptrace::getregs(pid)?.rax as usize }))
+        },
+        (Sysno::write, 2) => {
+            Ok(Some(Event::StderrWrite { length: ptrace::getregs(pid)?.rax as usize }))
+        },
         _ => Ok(None),
     }
 }
