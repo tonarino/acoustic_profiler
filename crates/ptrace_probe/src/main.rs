@@ -22,10 +22,10 @@ fn main() -> Result<()> {
     let args = Args::parse();
     let pid = Pid::from_raw(args.pid as i32);
 
-    let client = args
-        .address
-        .map(Client::new)
-        .unwrap_or_else(Client::try_default)?;
+    let client = match args.address {
+        Some(address) => Client::new(address),
+        None => Client::try_default(),
+    }?;
 
     ptrace::attach(pid)?;
     waitpid(Some(pid), None)?;
