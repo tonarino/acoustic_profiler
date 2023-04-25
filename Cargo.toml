@@ -4,6 +4,7 @@ members = [
     "crates/composer_api",
     "crates/dtrace-sys",
     "crates/test_probe",
+    "crates/tick_probe",
     "crates/ptrace_probe",
 ]
 
@@ -12,6 +13,7 @@ default-members = [
     "crates/composer_api",
     "crates/composer",
     "crates/test_probe",
+    "crates/tick_probe",
     "crates/ptrace_probe",
 ]
 
