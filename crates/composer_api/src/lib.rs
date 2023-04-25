@@ -9,6 +9,8 @@ pub const DEFAULT_SERVER_ADDRESS: &str = "localhost:8888";
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Event {
     TestTick,
+    StdoutWrite { length: usize },
+    StderrWrite { length: usize },
 }
 
 pub struct Client {

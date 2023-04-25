@@ -1,0 +1,14 @@
+[package]
+name = "ptrace_probe"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+color-eyre = "0.6"
+composer_api = { path = "../composer_api" }
+eyre = "0.6"
+clap = { version = "4.2", features = ["derive"] }
+fork = "0.1"
+nix = "0.24"
+exec = "0.3"
+syscalls = "0.6"
