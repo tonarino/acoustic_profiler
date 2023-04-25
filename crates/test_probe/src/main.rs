@@ -1,18 +1,25 @@
 #![warn(clippy::all, clippy::clone_on_ref_ptr)]
 
+use clap::Parser;
 use composer_api::{Client, Event};
 use eyre::Result;
-use std::{env, thread, time::Duration};
+use std::{thread, time::Duration};
+
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Server address to receive events.
+    address: Option<String>,
+}
 
 fn main() -> Result<()> {
     color_eyre::install()?;
 
-    // Get server address, if given
-    let args: Vec<String> = env::args().collect();
-    let client = match args.get(1) {
-        Some(address) => Client::new(address)?,
-        None => Client::try_default()?,
-    };
+    let args = Args::parse();
+    let client = match args.address {
+        Some(address) => Client::new(address),
+        None => Client::try_default(),
+    }?;
 
     let event = Event::TestTick;
 
