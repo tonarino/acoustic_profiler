@@ -67,13 +67,7 @@ impl ProbeData {
         let module_name = c_char_to_string(desc.dtpd_mod.as_ptr());
         let name = c_char_to_string(desc.dtpd_name.as_ptr());
         let function_name = c_char_to_string(desc.dtpd_func.as_ptr());
-        Self {
-            cpu_id,
-            provider_name,
-            module_name,
-            function_name,
-            name,
-        }
+        Self { cpu_id, provider_name, module_name, function_name, name }
     }
 }
 
@@ -122,10 +116,7 @@ impl DTrace {
             return Err(Error::InitializationError(c_char_to_string(message_raw)));
         }
 
-        Ok(Self {
-            inner: dtrace,
-            probes: Vec::default(),
-        })
+        Ok(Self { inner: dtrace, probes: Vec::default() })
     }
 
     /// Compiles a D program and starts collecting probe data.
