@@ -44,7 +44,7 @@ fn handle_datagram(socket: &UdpSocket, sound_controller: &mut SoundController) -
 
     let _event: Event = bincode::deserialize(&buf[..number_of_bytes])?;
 
-    sound_controller.increment_hz();
+    sound_controller.play_click();
 
     Ok(number_of_bytes)
 }

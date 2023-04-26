@@ -4,15 +4,22 @@ use cpal::{
 };
 use eyre::Result;
 use fundsp::hacker::*;
+use std::sync::Arc;
+
+const NUM_SLOTS: usize = 20;
 
 pub struct SoundController {
     _stream: cpal::Stream,
-    custom_organ_hz: Shared<f64>,
-    _frontend_net: Net64,
+    frontend_net: Net64,
+    slots: Vec<NodeId>,
+    slot_index: usize,
+    click: Arc<Wave64>,
 }
 
 impl SoundController {
     pub fn new() -> Result<Self> {
+        let click = Wave64::load("src/sound_samples/click.wav")?;
+
         let host = cpal::default_host();
 
         let device = host.default_output_device().expect("Failed to find a default output device");
@@ -27,8 +34,7 @@ impl SoundController {
 
         let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
 
-        let custom_organ_hz = shared(0.0f64);
-        let (frontend_net, mut backend) = Self::build_dsp_graph(&custom_organ_hz);
+        let (frontend_net, mut backend, slots) = Self::build_dsp_graph();
 
         let stream = device.build_output_stream(
             &stream_config,
@@ -43,28 +49,59 @@ impl SoundController {
 
         stream.play()?;
 
-        Ok(Self { _stream: stream, custom_organ_hz, _frontend_net: frontend_net })
+        Ok(Self { _stream: stream, frontend_net, slots, slot_index: 0, click: Arc::new(click) })
     }
 
-    fn build_dsp_graph(custom_organ_hz: &Shared<f64>) -> (Net64, Net64Backend) {
-        let custom_osc = var_fn(custom_organ_hz, |hz| hz.clamp(0.0, 1000.0))
-            >> organ()
-            >> chorus(0, 0.0, 0.1, 0.1);
+    fn build_dsp_graph() -> (Net64, Net64Backend, Vec<NodeId>) {
+        let mut net = Net64::new(0, 1);
 
-        let dsp_graph = 0.3
-            * (custom_osc
-                + organ_hz(midi_hz(57.0))
-                + organ_hz(midi_hz(61.0))
-                + organ_hz(midi_hz(64.0)));
+        // Create a node with 20 inputs that are mixed into one output
+        let mixer = pass()
+            + pass()
+            + pass()
+            + pass()
+            + pass()
+            + pass()
+            + pass()
+            + pass()
+            + pass()
+            + pass()
+            + pass()
+            + pass()
+            + pass()
+            + pass()
+            + pass()
+            + pass()
+            + pass()
+            + pass()
+            + pass()
+            + pass();
 
-        let mut frontend_net = Net64::wrap(Box::new(dsp_graph));
-        let backend = frontend_net.backend();
+        // add the mixer to the network and connect its output to the network's output
+        let mixer_id = net.push(Box::new(mixer));
+        net.connect_output(mixer_id, 0, 0);
 
-        (frontend_net, backend)
+        // Add 20 silent nodes to the network and connect each to one of the inputs of the mixer.
+        let slots = (0..NUM_SLOTS)
+            .map(|i| {
+                let node_id = net.push(Box::new(zero()));
+                net.connect(node_id, 0, mixer_id, i);
+                node_id
+            })
+            .collect::<Vec<_>>();
+
+        let backend = net.backend();
+
+        (net, backend, slots)
     }
 
-    pub fn increment_hz(&mut self) {
-        let current_val = self.custom_organ_hz.value();
-        self.custom_organ_hz.set_value(current_val + 5.0);
+    pub fn play_click(&mut self) {
+        let player = Wave64Player::new(&self.click, 0, 0, self.click.length(), None);
+        let node_id = self.slots.get(self.slot_index).expect("programmer made a mistake");
+
+        self.frontend_net.replace(*node_id, Box::new(An(player)));
+        self.frontend_net.commit();
+
+        self.slot_index = if self.slot_index == NUM_SLOTS - 1 { 0 } else { self.slot_index + 1 };
     }
 }
