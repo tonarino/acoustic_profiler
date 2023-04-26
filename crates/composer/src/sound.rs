@@ -29,7 +29,7 @@ impl SoundController {
         let custom_osc_hz = shared(0.0f64);
         let custom_osc = var(&custom_osc_hz) >> sine();
 
-        let mut c = 0.3
+        let mut dsp_graph = 0.3
             * (custom_osc
                 + organ_hz(midi_hz(57.0))
                 + organ_hz(midi_hz(61.0))
@@ -39,7 +39,7 @@ impl SoundController {
             &stream_config,
             move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
                 for sample in data {
-                    *sample = c.get_mono() as f32;
+                    *sample = dsp_graph.get_mono() as f32;
                 }
             },
             err_fn,
