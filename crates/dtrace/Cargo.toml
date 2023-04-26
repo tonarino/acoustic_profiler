@@ -1,0 +1,10 @@
+[package]
+name = "dtrace"
+version = "0.1.0"
+authors = ["Ryo Kawaguchi <ryo@kawagu.ch>"]
+edition = "2021"
+
+[dependencies]
+dtrace-sys = { path = "../dtrace-sys" }
+libc = "0"
+thiserror = "1"
