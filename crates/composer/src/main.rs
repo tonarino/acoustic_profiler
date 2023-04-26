@@ -1,13 +1,13 @@
 #![warn(clippy::all, clippy::clone_on_ref_ptr)]
 
-use crate::jukebox::{Jukebox, Sample};
+use crate::sound::SoundController;
 use clap::Parser;
 use composer_api::{Event, DEFAULT_SERVER_ADDRESS};
-use eyre::{Context, Result};
-use rodio::{OutputStream, OutputStreamHandle};
+use eyre::Result;
 use std::net::UdpSocket;
 
 mod jukebox;
+mod sound;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -24,21 +24,16 @@ fn main() -> Result<()> {
     let socket = UdpSocket::bind(args.address.as_deref().unwrap_or(DEFAULT_SERVER_ADDRESS))?;
     println!("Listening on {}", socket.local_addr()?);
 
-    let (_stream, stream_handle) = OutputStream::try_default()?;
+    let mut sound_controller = SoundController::new()?;
 
-    let jukebox = Jukebox::new().context("creating jukebox")?;
     loop {
-        if let Err(err) = handle_datagram(&socket, &stream_handle, &jukebox) {
+        if let Err(err) = handle_datagram(&socket, &mut sound_controller) {
             eprintln!("Could not process datagram. Ignoring and continuing. {:?}", err);
         }
     }
 }
 
-fn handle_datagram(
-    socket: &UdpSocket,
-    output_stream: &OutputStreamHandle,
-    jukebox: &Jukebox,
-) -> Result<()> {
+fn handle_datagram(socket: &UdpSocket, sound_controller: &mut SoundController) -> Result<()> {
     // Size up to max normal network packet size
     let mut buf = [0; 1500];
     let (number_of_bytes, _) = socket.recv_from(&mut buf)?;
@@ -46,13 +41,7 @@ fn handle_datagram(
     let event: Event = bincode::deserialize(&buf[..number_of_bytes])?;
     println!("Received an event ({number_of_bytes} bytes): {:?}", event);
 
-    let sample = match event {
-        Event::TestTick => Sample::Click,
-
-        // TODO(Matej): add different sounds for these, and vary some their quality based on length.
-        Event::StderrWrite { length: _ } | Event::StdoutWrite { length: _ } => Sample::Click,
-    };
-    jukebox.play(output_stream, sample)?;
+    sound_controller.increment_hz();
 
     Ok(())
 }
