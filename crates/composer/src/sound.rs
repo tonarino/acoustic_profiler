@@ -7,7 +7,7 @@ use fundsp::hacker::*;
 
 pub struct SoundController {
     _stream: cpal::Stream,
-    custom_osc_hz: Shared<f64>,
+    custom_organ_hz: Shared<f64>,
 }
 
 impl SoundController {
@@ -26,8 +26,10 @@ impl SoundController {
 
         let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
 
-        let custom_osc_hz = shared(0.0f64);
-        let custom_osc = var(&custom_osc_hz) >> sine();
+        let custom_organ_hz = shared(0.0f64);
+        let custom_osc = var_fn(&custom_organ_hz, |hz| hz.clamp(0.0, 1000.0))
+            >> organ()
+            >> chorus(0, 0.0, 0.1, 0.1);
 
         let mut dsp_graph = 0.3
             * (custom_osc
@@ -48,11 +50,11 @@ impl SoundController {
 
         stream.play()?;
 
-        Ok(Self { _stream: stream, custom_osc_hz })
+        Ok(Self { _stream: stream, custom_organ_hz })
     }
 
     pub fn increment_hz(&mut self) {
-        let current_val = self.custom_osc_hz.value();
-        self.custom_osc_hz.set_value(current_val + 5.0);
+        let current_val = self.custom_organ_hz.value();
+        self.custom_organ_hz.set_value(current_val + 5.0);
     }
 }
