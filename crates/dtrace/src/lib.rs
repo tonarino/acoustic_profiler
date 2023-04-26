@@ -174,9 +174,7 @@ impl DTrace {
     ///
     /// The duration it blocks depends on `switchrate`, `statusrate` and `aggrate` options used for
     /// the program execution.
-    pub fn wait_and_consume(
-        &mut self,
-    ) -> Result<WaitAndConsumeResult, Error> {
+    pub fn wait_and_consume(&mut self) -> Result<WaitAndConsumeResult, Error> {
         unsafe {
             sys::dtrace_sleep(self.inner);
         }
@@ -200,10 +198,7 @@ impl DTrace {
 
         let probes = std::mem::take(&mut self.probes);
 
-        Ok(WaitAndConsumeResult {
-            status,
-            probes,
-        })
+        Ok(WaitAndConsumeResult { status, probes })
     }
 
     /// Instructs the kernel to disable any enabled probe and free the memory.
@@ -239,10 +234,7 @@ mod tests {
         dtrace.execute_program(&format!("syscall:::entry {{}}"), &[("bufsize", "1k")])?;
 
         let result = dtrace.wait_and_consume()?;
-        assert_eq!(
-            ProgramStatus::Ongoing,
-            result.status,
-        );
+        assert_eq!(ProgramStatus::Ongoing, result.status,);
         assert!(result.probes.len() > 0);
 
         dtrace.stop()?;
