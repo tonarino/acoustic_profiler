@@ -8,6 +8,7 @@ use fundsp::hacker::*;
 pub struct SoundController {
     _stream: cpal::Stream,
     custom_organ_hz: Shared<f64>,
+    _frontend_net: Net64,
 }
 
 impl SoundController {
@@ -27,21 +28,13 @@ impl SoundController {
         let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
 
         let custom_organ_hz = shared(0.0f64);
-        let custom_osc = var_fn(&custom_organ_hz, |hz| hz.clamp(0.0, 1000.0))
-            >> organ()
-            >> chorus(0, 0.0, 0.1, 0.1);
-
-        let mut dsp_graph = 0.3
-            * (custom_osc
-                + organ_hz(midi_hz(57.0))
-                + organ_hz(midi_hz(61.0))
-                + organ_hz(midi_hz(64.0)));
+        let (frontend_net, mut backend) = Self::build_dsp_graph(&custom_organ_hz);
 
         let stream = device.build_output_stream(
             &stream_config,
             move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
                 for sample in data {
-                    *sample = dsp_graph.get_mono() as f32;
+                    *sample = backend.get_mono() as f32;
                 }
             },
             err_fn,
@@ -50,7 +43,24 @@ impl SoundController {
 
         stream.play()?;
 
-        Ok(Self { _stream: stream, custom_organ_hz })
+        Ok(Self { _stream: stream, custom_organ_hz, _frontend_net: frontend_net })
+    }
+
+    fn build_dsp_graph(custom_organ_hz: &Shared<f64>) -> (Net64, Net64Backend) {
+        let custom_osc = var_fn(custom_organ_hz, |hz| hz.clamp(0.0, 1000.0))
+            >> organ()
+            >> chorus(0, 0.0, 0.1, 0.1);
+
+        let dsp_graph = 0.3
+            * (custom_osc
+                + organ_hz(midi_hz(57.0))
+                + organ_hz(midi_hz(61.0))
+                + organ_hz(midi_hz(64.0)));
+
+        let mut frontend_net = Net64::wrap(Box::new(dsp_graph));
+        let backend = frontend_net.backend();
+
+        (frontend_net, backend)
     }
 
     pub fn increment_hz(&mut self) {
