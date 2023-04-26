@@ -1,16 +1,19 @@
 #![warn(clippy::all, clippy::clone_on_ref_ptr)]
 
-use crate::jukebox::{Jukebox, Sample};
+use crate::{
+    jukebox::{Jukebox, Sample},
+    sound::AudioOutput,
+};
 use clap::Parser;
 use composer_api::{Event, DEFAULT_SERVER_ADDRESS};
 use eyre::{Context, Result};
-use rodio::{OutputStream, OutputStreamHandle};
 use std::{
     net::UdpSocket,
     time::{Duration, Instant},
 };
 
 mod jukebox;
+mod sound;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -27,12 +30,12 @@ fn main() -> Result<()> {
     let socket = UdpSocket::bind(args.address.as_deref().unwrap_or(DEFAULT_SERVER_ADDRESS))?;
     println!("Listening on {}", socket.local_addr()?);
 
-    let (_stream, stream_handle) = OutputStream::try_default()?;
+    let audio_output = AudioOutput::new()?;
 
     let jukebox = Jukebox::new().context("creating jukebox")?;
     let mut stats = Stats { since: Instant::now(), events: 0, total_bytes: 0 };
     loop {
-        match handle_datagram(&socket, &stream_handle, &jukebox) {
+        match handle_datagram(&socket, &audio_output, &jukebox) {
             Ok(bytes_received) => stats.record_event(bytes_received),
             Err(err) => eprintln!("Could not process datagram. Ignoring and continuing. {:?}", err),
         }
@@ -42,7 +45,7 @@ fn main() -> Result<()> {
 /// Block until next datagram is received and handle it. Returns its size in bytes.
 fn handle_datagram(
     socket: &UdpSocket,
-    output_stream: &OutputStreamHandle,
+    audio_output: &AudioOutput,
     jukebox: &Jukebox,
 ) -> Result<usize> {
     // Size up to max normal network packet size
@@ -59,7 +62,7 @@ fn handle_datagram(
         // TODO(Pablo): Play a sound that scales with the number of reports.
         Event::LogStats(_) => todo!(),
     };
-    jukebox.play(output_stream, sample)?;
+    jukebox.play(audio_output, sample);
 
     Ok(number_of_bytes)
 }
