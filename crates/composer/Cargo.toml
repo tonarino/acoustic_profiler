@@ -8,5 +8,6 @@ bincode = "1"
 clap = { version = "4.2", features = ["derive"] }
 color-eyre = "0.6"
 composer_api = { path = "../composer_api" }
+cpal = "0.15"
 eyre = "0.6"
 rodio = { version = "0.17", features = ["symphonia-wav"] }

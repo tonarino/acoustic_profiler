@@ -1,7 +1,8 @@
+use crate::sound::AudioOutput;
 use eyre::{Context, Result};
 use rodio::{
     source::{Buffered, SamplesConverter},
-    Decoder, OutputStreamHandle, Source,
+    Decoder, Source,
 };
 use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
 
@@ -48,15 +49,12 @@ impl Jukebox {
         Ok(Self { samples })
     }
 
-    pub(crate) fn play(&self, output_stream: &OutputStreamHandle, sample: Sample) -> Result<()> {
+    pub(crate) fn play(&self, audio_output: &AudioOutput, sample: Sample) {
         let buffer = self
             .samples
             .get(&sample)
             .expect("programmer error, all possible samples should be loaded");
 
-        output_stream
-            .play_raw(buffer.clone())
-            .with_context(|| format!("playing sample {sample:?}"))?;
-        Ok(())
+        audio_output.play(buffer.clone());
     }
 }
