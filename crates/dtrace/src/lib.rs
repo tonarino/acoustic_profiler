@@ -46,6 +46,15 @@ pub struct ProbeData {
     // TODO(skywhale): Add other data such as function arguments.
 }
 
+/// The result of `wait_and_consume()` function.
+#[derive(Debug)]
+pub struct WaitAndConsumeResult {
+    /// The status of the program that is being executed.
+    pub status: ProgramStatus,
+    /// Probe data that was collected during the wait.
+    pub probes: Vec<ProbeData>,
+}
+
 fn c_char_to_string(raw: *const i8) -> String {
     unsafe { CStr::from_ptr(raw) }.to_string_lossy().to_string()
 }
@@ -123,6 +132,7 @@ impl DTrace {
     ///
     /// Available DTrace options:
     /// https://docs.oracle.com/en/operating-systems/solaris/oracle-solaris/11.4/dtrace-guide/consumer-options.html
+    // TODO(skywhale): Define DtraceOption to get type safety.
     pub fn execute_program(&self, program: &str, options: &[(&str, &str)]) -> Result<(), Error> {
         let program = CString::new(program).expect("CString::new failed");
         let prog = unsafe {
@@ -159,21 +169,20 @@ impl DTrace {
         Ok(())
     }
 
-    // Blocks for some time and consumes the probe data collected by DTrace. The |ProgramStatus|
-    // informs about the state of the program execution.
-    //
-    // The duration it blocks depends on `switchrate`, `statusrate` and `aggrate` options used for
-    // the program execution.
+    /// Blocks for some time and consumes the probe data collected by DTrace. The |ProgramStatus|
+    /// informs about the state of the program execution.
+    ///
+    /// The duration it blocks depends on `switchrate`, `statusrate` and `aggrate` options used for
+    /// the program execution.
     pub fn wait_and_consume(
         &mut self,
-        probes: &mut Vec<ProbeData>,
-    ) -> Result<ProgramStatus, Error> {
+    ) -> Result<WaitAndConsumeResult, Error> {
         unsafe {
             sys::dtrace_sleep(self.inner);
         }
 
         let user_ptr = &mut *self as *mut _ as *mut std::ffi::c_void;
-        let status = unsafe {
+        let status_raw = unsafe {
             sys::dtrace_work(
                 self.inner,
                 std::ptr::null_mut(),
@@ -183,13 +192,18 @@ impl DTrace {
             )
         };
 
-        probes.append(&mut self.probes);
+        let status = match status_raw {
+            sys::dtrace_workstatus_t_DTRACE_WORKSTATUS_OKAY => ProgramStatus::Ongoing,
+            sys::dtrace_workstatus_t_DTRACE_WORKSTATUS_DONE => ProgramStatus::Done,
+            _ => return Err(Error::OperationError(self.last_error_message())),
+        };
 
-        match status {
-            sys::dtrace_workstatus_t_DTRACE_WORKSTATUS_OKAY => Ok(ProgramStatus::Ongoing),
-            sys::dtrace_workstatus_t_DTRACE_WORKSTATUS_DONE => Ok(ProgramStatus::Done),
-            _ => Err(Error::OperationError(self.last_error_message())),
-        }
+        let probes = std::mem::take(&mut self.probes);
+
+        Ok(WaitAndConsumeResult {
+            status,
+            probes,
+        })
     }
 
     /// Instructs the kernel to disable any enabled probe and free the memory.
@@ -222,14 +236,14 @@ mod tests {
     fn dtrace_open_close() -> Result<(), Error> {
         let mut dtrace = DTrace::new()?;
 
-        dtrace.execute_program(&format!("syscall:::entry {{}}"), &[("bufsize", &"1k")])?;
+        dtrace.execute_program(&format!("syscall:::entry {{}}"), &[("bufsize", "1k")])?;
 
-        let mut probes = Vec::default();
+        let result = dtrace.wait_and_consume()?;
         assert_eq!(
             ProgramStatus::Ongoing,
-            dtrace.wait_and_consume(&mut probes)?
+            result.status,
         );
-        assert!(0 < probes.len());
+        assert!(result.probes.len() > 0);
 
         dtrace.stop()?;
 
