@@ -2,7 +2,10 @@
 
 use eyre::{eyre, Result};
 use serde::{Deserialize, Serialize};
-use std::net::{ToSocketAddrs, UdpSocket};
+use std::net::{
+    SocketAddr::{V4, V6},
+    ToSocketAddrs, UdpSocket,
+};
 
 pub const DEFAULT_SERVER_ADDRESS: &str = "localhost:8888";
 
@@ -44,12 +47,9 @@ impl Client {
             .ok_or(eyre!("can't resolve server address"))?;
 
         // Set the address and port to 0 to let the OS choose unoccupied values for us
-        if server_address.is_ipv4() {
-            Ok("0.0.0.0:0")
-        } else if server_address.is_ipv6() {
-            Ok(":::0")
-        } else {
-            Err(eyre!("not an IP address"))
+        match server_address {
+            V4(_) => Ok("0.0.0.0:0"),
+            V6(_) => Ok(":::0"),
         }
     }
 }
