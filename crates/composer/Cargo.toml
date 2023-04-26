@@ -7,6 +7,8 @@ edition = "2021"
 bincode = "1"
 clap = { version = "4.2", features = ["derive"] }
 color-eyre = "0.6"
+cpal = "0.15"
 composer_api = { path = "../composer_api" }
 eyre = "0.6"
+fundsp = "0.13"
 rodio = { version = "0.17", features = ["symphonia-wav"] }
