@@ -28,8 +28,8 @@ jobs:
         with:
           command: test
 
-  lints:
-    name: Lint
+  clippy:
+    name: Run Clippy
     runs-on: ubuntu-latest
     steps:
       - name: Install native dependencies
@@ -44,7 +44,28 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
-          components: rustfmt, clippy
+          components: clippy
+
+      - name: Run cargo clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all-targets --all-features -- -D warnings
+
+  format:
+    name: Check Formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install nightly toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+          components: rustfmt
 
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1
@@ -52,9 +73,3 @@ jobs:
           command: fmt
           ## fmt doesn't compile the crates so we can include dtrace-sys with --all
           args: --all --check
-
-      - name: Run cargo clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --all-targets --all-features -- -D warnings
