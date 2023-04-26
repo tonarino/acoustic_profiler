@@ -9,6 +9,8 @@ use thiserror::Error;
 pub enum Error {
     /// Failed to initialize a DTrace instance.
     InitializationError(String),
+    /// Failed to register a handler for dtrace events.
+    HandlerRegistrationError(String),
     /// Failed to compile a DTrace program.
     ProgramCompilationError(String),
     /// An invalid option or value requested.
@@ -43,7 +45,8 @@ pub struct ProbeData {
     pub function_name: String,
     /// Probe name.
     pub name: String,
-    // TODO(skywhale): Add other data such as function arguments.
+    /// Output of the `trace()` calls associated with this probe.
+    pub traces: Vec<String>,
 }
 
 /// The result of `wait_and_consume()` function.
@@ -67,7 +70,8 @@ impl ProbeData {
         let module_name = c_char_to_string(desc.dtpd_mod.as_ptr());
         let name = c_char_to_string(desc.dtpd_name.as_ptr());
         let function_name = c_char_to_string(desc.dtpd_func.as_ptr());
-        Self { cpu_id, provider_name, module_name, function_name, name }
+        let traces = Vec::new();
+        Self { cpu_id, provider_name, module_name, function_name, name, traces }
     }
 }
 
@@ -99,6 +103,18 @@ extern "C" fn probe_action_callback(
     }
 }
 
+extern "C" fn trace_callback(
+    trace_data_raw: *const sys::dtrace_bufdata_t,
+    user_ptr: *mut std::ffi::c_void,
+) -> i32 {
+    let trace_data = c_char_to_string(unsafe { *trace_data_raw }.dtbda_buffered);
+
+    let dtrace: &mut DTrace = unsafe { &mut *(user_ptr as *mut DTrace) };
+    dtrace.probes.last_mut().unwrap().traces.push(trace_data);
+
+    sys::DTRACE_HANDLE_OK as i32
+}
+
 // TODO(skywhale): Support grabbing a process for user-space inspection.
 #[derive(Debug)]
 pub struct DTrace {
@@ -124,7 +140,7 @@ impl DTrace {
     /// Available DTrace options:
     /// https://docs.oracle.com/en/operating-systems/solaris/oracle-solaris/11.4/dtrace-guide/consumer-options.html
     // TODO(skywhale): Define DtraceOption to get type safety.
-    pub fn execute_program(&self, program: &str, options: &[(&str, &str)]) -> Result<(), Error> {
+    pub fn execute_program(&mut self, program: &str, options: &[(&str, &str)]) -> Result<(), Error> {
         let program = CString::new(program).expect("CString::new failed");
         let prog = unsafe {
             sys::dtrace_program_strcompile(
@@ -151,6 +167,14 @@ impl DTrace {
             if unsafe { sys::dtrace_setopt(self.inner, name.as_ptr(), value.as_ptr()) } == -1 {
                 return Err(Error::InvalidOption(self.last_error_message()));
             }
+        }
+
+        let user_ptr = &mut *self as *mut _ as *mut std::ffi::c_void;
+        if unsafe {
+            sys::dtrace_handle_buffered(self.inner, Some(trace_callback), user_ptr)
+        } == -1
+        {
+            return Err(Error::HandlerRegistrationError(self.last_error_message()));
         }
 
         if unsafe { sys::dtrace_go(self.inner) } != 0 {
@@ -219,13 +243,14 @@ mod tests {
     use crate::{DTrace, Error, ProgramStatus};
 
     #[test]
-    fn dtrace_open_close() -> Result<(), Error> {
+    fn dtrace_collect_syscalls() -> Result<(), Error> {
         let mut dtrace = DTrace::new()?;
 
-        dtrace.execute_program(&format!("syscall:::entry {{}}"), &[("bufsize", "1k")])?;
+        let options = &[("bufsize", "4m"), ("aggsize", "4m")];
+        dtrace.execute_program(&format!("syscall:::entry {{ trace(timestamp); }}"), options)?;
 
         let result = dtrace.wait_and_consume()?;
-        assert_eq!(ProgramStatus::Ongoing, result.status,);
+        assert_eq!(ProgramStatus::Ongoing, result.status);
         assert!(result.probes.len() > 0);
 
         dtrace.stop()?;
