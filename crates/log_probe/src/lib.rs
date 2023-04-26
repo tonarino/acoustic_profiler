@@ -35,7 +35,7 @@ enum AggregatorMessage {
 impl LogProbe {
     pub fn new(
         server_address: Option<String>,
-        report_frequency: Duration,
+        report_period: Duration,
     ) -> Result<Self, LogProbeError> {
         let shutdown = Arc::<AtomicBool>::default();
         let client = if let Some(address) = server_address {
@@ -47,7 +47,7 @@ impl LogProbe {
 
         let (tx, rx) = sync_channel::<AggregatorMessage>(100);
         spawn_aggregator_thread(rx, client, shutdown.clone());
-        spawn_tick_thread(tx.clone(), shutdown.clone(), report_frequency);
+        spawn_tick_thread(tx.clone(), shutdown.clone(), report_period);
 
         Ok(Self { tx, shutdown })
     }
@@ -56,12 +56,12 @@ impl LogProbe {
 fn spawn_tick_thread(
     tx: SyncSender<AggregatorMessage>,
     shutdown: Arc<AtomicBool>,
-    report_frequency: Duration,
+    report_period: Duration,
 ) {
     std::thread::spawn(move || {
         let start = Instant::now();
-        for deadline in (0..).map(|i| start + i * report_frequency) {
-            if let Err(e) = tx.send(AggregatorMessage::Tick) {
+        for deadline in (0..).map(|i| start + i * report_period) {
+            if let Err(e) = tx.try_send(AggregatorMessage::Tick) {
                 eprintln!("Failed to communicate with aggregator thread: {e}")
             }
 
