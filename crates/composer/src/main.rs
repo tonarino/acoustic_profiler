@@ -8,6 +8,7 @@ use clap::Parser;
 use composer_api::{Event, DEFAULT_SERVER_ADDRESS};
 use eyre::{Context, Result};
 use std::{
+    collections::BTreeMap,
     net::UdpSocket,
     time::{Duration, Instant},
 };
@@ -22,6 +23,8 @@ struct Args {
     address: Option<String>,
 }
 
+type EventQueue = BTreeMap<Instant, Event>;
+
 fn main() -> Result<()> {
     color_eyre::install()?;
 
@@ -34,35 +37,50 @@ fn main() -> Result<()> {
 
     let jukebox = Jukebox::new().context("creating jukebox")?;
     let mut stats = Stats { since: Instant::now(), events: 0, total_bytes: 0 };
+    let mut event_queue: EventQueue = BTreeMap::default();
+
     loop {
-        match handle_datagram(&socket, &audio_output, &jukebox) {
+        match handle_datagram(&socket, &mut event_queue) {
             Ok(bytes_received) => stats.record_event(bytes_received),
             Err(err) => eprintln!("Could not process datagram. Ignoring and continuing. {:?}", err),
         }
+
+        tick_synthesis(&mut event_queue, &audio_output, &jukebox)
+        // TODO: play sound tick
     }
 }
 
 /// Block until next datagram is received and handle it. Returns its size in bytes.
-fn handle_datagram(
-    socket: &UdpSocket,
-    audio_output: &AudioOutput,
-    jukebox: &Jukebox,
-) -> Result<usize> {
+fn handle_datagram(socket: &UdpSocket, event_queue: &mut EventQueue) -> Result<usize> {
     // Size up to max normal network packet size
     let mut buf = [0; 1500];
     let (number_of_bytes, _) = socket.recv_from(&mut buf)?;
 
     let event: Event = bincode::deserialize(&buf[..number_of_bytes])?;
 
-    let sample = match event {
-        Event::TestTick => Sample::Clack,
-
-        // TODO(Matej): add different sounds for these, and vary some their quality based on length.
-        Event::StderrWrite { length: _ } | Event::StdoutWrite { length: _ } => Sample::Click,
-    };
-    jukebox.play(audio_output, sample);
+    event_queue.insert(Instant::now(), event);
 
     Ok(number_of_bytes)
+}
+
+fn tick_synthesis(event_queue: &mut EventQueue, audio_output: &AudioOutput, jukebox: &Jukebox) {
+    let ts = match event_queue.last_key_value() {
+        Some((ts, _)) => ts,
+        None => return,
+    };
+
+    if *ts > Instant::now() {
+        return;
+    }
+
+    let (_, event) = event_queue.pop_last().expect("entry disappeared under our hands");
+
+    let sample = match event {
+        Event::TestTick => Sample::Clack,
+        Event::StdoutWrite { length: _ } | Event::StderrWrite { length: _ } => Sample::Click,
+    };
+
+    jukebox.play(audio_output, sample);
 }
 
 struct Stats {
