@@ -8,14 +8,16 @@ use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum Sample {
     Click,
+    Clack,
 }
 
 impl Sample {
-    const ALL: &[Sample] = &[Self::Click];
+    const ALL: &[Sample] = &[Self::Click, Sample::Clack];
 
     fn filename(&self) -> &'static Path {
         Path::new(match self {
             Sample::Click => "click.wav",
+            Sample::Clack => "clack.wav",
         })
     }
 }
