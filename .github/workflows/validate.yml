@@ -51,14 +51,14 @@ jobs:
 
       - name: Run cargo clippy on linux
         uses: actions-rs/cargo@v1
-        if: ${{ matrix.os == "ubuntu-latest" }}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         with:
           command: clippy
           args: --workspace --exclude 'dtrace*' --all-targets --all-features -- -D warnings
 
       - name: Run cargo clippy on macOS
         uses: actions-rs/cargo@v1
-        if: ${{ matrix.os == "macos-latest" }}
+        if: ${{ matrix.os == 'macos-latest' }}
         with:
           command: clippy
           args: --package 'dtrace*' --all-targets --all-features -- -D warnings
