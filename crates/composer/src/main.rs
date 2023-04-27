@@ -52,7 +52,7 @@ fn handle_datagram(
     let event: Event = bincode::deserialize(&buf[..number_of_bytes])?;
 
     let sample = match event {
-        Event::TestTick => Sample::Click,
+        Event::TestTick => Sample::Clack,
 
         // TODO(Matej): add different sounds for these, and vary some their quality based on length.
         Event::StderrWrite { length: _ } | Event::StdoutWrite { length: _ } => Sample::Click,
