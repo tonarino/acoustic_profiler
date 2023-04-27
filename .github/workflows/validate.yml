@@ -63,6 +63,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
+          # nightly is required by some of the option defined in rustfmt.toml
           toolchain: nightly
           override: true
           components: rustfmt
