@@ -20,6 +20,11 @@ mod sound;
 struct Args {
     /// the address to listen on for incoming events
     address: Option<String>,
+
+    /// Delay event timestamps by this amount during playback. Should be larger than audio buffer
+    /// period time plus the sound card latency.
+    #[arg(short, long, default_value_t = 200)]
+    delay_ms: u64,
 }
 
 fn main() -> Result<()> {
@@ -30,13 +35,13 @@ fn main() -> Result<()> {
     let socket = UdpSocket::bind(args.address.as_deref().unwrap_or(DEFAULT_SERVER_ADDRESS))?;
     println!("Listening on {}", socket.local_addr()?);
 
-    let audio_output = AudioOutput::new()?;
+    let audio_output = AudioOutput::new(Duration::from_millis(args.delay_ms))?;
 
     let jukebox = Jukebox::new().context("creating jukebox")?;
     let mut stats = Stats { since: Instant::now(), events: 0, total_bytes: 0 };
     loop {
         match handle_datagram(&socket, &audio_output, &jukebox) {
-            Ok(bytes_received) => stats.record_event(bytes_received),
+            Ok(bytes_received) => stats.record_event(bytes_received, &audio_output),
             Err(err) => eprintln!("Could not process datagram. Ignoring and continuing. {:?}", err),
         }
     }
@@ -74,15 +79,17 @@ struct Stats {
 impl Stats {
     const REPORT_EVERY: Duration = Duration::from_secs(1);
 
-    fn record_event(&mut self, bytes_received: usize) {
+    fn record_event(&mut self, bytes_received: usize, audio_output: &AudioOutput) {
         self.events += 1;
         self.total_bytes += bytes_received;
 
         let elapsed = self.since.elapsed();
         if elapsed >= Self::REPORT_EVERY {
             println!(
-                "Received {} events ({} bytes) in last {elapsed:.2?}.",
-                self.events, self.total_bytes
+                "Received {} events ({} bytes) in last {elapsed:.2?}, {} too early plays.",
+                self.events,
+                self.total_bytes,
+                audio_output.fetch_too_early_plays(),
             );
 
             self.since = Instant::now();
