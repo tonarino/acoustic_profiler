@@ -31,6 +31,9 @@ jobs:
   clippy:
     name: Run Clippy
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: ["ubuntu-latest", "macos-latest"]
     steps:
       - name: Install native dependencies
         run: sudo apt-get update && sudo apt-get install libasound2-dev
@@ -46,11 +49,19 @@ jobs:
           override: true
           components: clippy
 
-      - name: Run cargo clippy
+      - name: Run cargo clippy on linux
         uses: actions-rs/cargo@v1
+        if: ${{ matrix.os == "ubuntu-latest" }}
         with:
           command: clippy
-          args: --all-targets --all-features -- -D warnings
+          args: --workspace --exclude 'dtrace*' --all-targets --all-features -- -D warnings
+
+      - name: Run cargo clippy on macOS
+        uses: actions-rs/cargo@v1
+        if: ${{ matrix.os == "macos-latest" }}
+        with:
+          command: clippy
+          args: --package 'dtrace*' --all-targets --all-features -- -D warnings
 
   format:
     name: Check Formatting
