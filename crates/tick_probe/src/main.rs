@@ -1,7 +1,7 @@
 use clap::Parser;
 use composer_api::{Client, Event};
 use eyre::Result;
-use std::{thread, time::Duration};
+use std::time::{Duration, Instant};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -24,10 +24,15 @@ fn main() -> Result<()> {
 
     let event = Event::TestTick;
 
-    loop {
+    // Try to prevent drifting away from the given frequency by dynamically computing the sleep duration for each cycle
+    let start = Instant::now();
+    for deadline in (0..).map(|i| start + Duration::from_secs_f64(i as f64 / args.frequency)) {
         if let Err(err) = client.send(&event) {
             eprintln!("Could not send event {:?}", err)
         };
-        thread::sleep(Duration::from_secs_f64(1.0 / args.frequency));
+
+        std::thread::sleep(deadline.saturating_duration_since(Instant::now()));
     }
+
+    unreachable!()
 }
