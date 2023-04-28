@@ -1,6 +1,6 @@
 use cpal::{
     traits::{DeviceTrait, HostTrait},
-    OutputCallbackInfo, OutputStreamTimestamp, SampleFormat, StreamInstant,
+    OutputCallbackInfo, OutputStreamTimestamp, SampleFormat,
 };
 use eyre::{bail, eyre, Result};
 use rodio::{
@@ -94,7 +94,6 @@ struct AudioCallback {
     mixer: DynamicMixer<f32>,
     source_rx: Receiver<TimedSource>,
     too_early_plays: Arc<AtomicU64>,
-    stream_start: Option<StreamStart>,
 }
 
 impl AudioCallback {
@@ -105,25 +104,19 @@ impl AudioCallback {
         too_early_plays: &Arc<AtomicU64>,
     ) -> Self {
         let too_early_plays = Arc::clone(too_early_plays);
-        Self { mixer_controller, mixer, source_rx, too_early_plays, stream_start: None }
+        Self { mixer_controller, mixer, source_rx, too_early_plays }
     }
 
     fn fill_data(&mut self, data_out: &mut [f32], info: &OutputCallbackInfo) {
-        let stream_timestamp = info.timestamp();
-        let stream_start =
-            self.stream_start.get_or_insert_with(|| StreamStart::new(stream_timestamp));
-
-        // At least on Linux ALSA, cpal gives very strange stream timestamp on very first call.
-        if stream_start.callback > stream_timestamp.callback {
-            eprintln!("cpal's stream timestamp jumped backwards, resetting stream start.");
-            *stream_start = StreamStart::new(stream_timestamp);
-        }
-
-        // UNIX timestamp of when the buffer filled during this call will be actually played.
-        let buffer_playback_timestamp = stream_start.realtime
-            + (stream_timestamp.playback.duration_since(&stream_start.callback).expect(
-                "current playback timestamp should be larger than start callback timestamp",
-            ));
+        let now = current_timestamp();
+        // cpal gives us two timestamps that cannot be compared to unix time directly as they have a different epoch.
+        // However subtracting them gives us the duration between when we were called (i.e. now) and when the buffer
+        // we produce will be played.
+        let OutputStreamTimestamp { playback, callback } = info.timestamp();
+        let playback_delay =
+            playback.duration_since(&callback).expect("playback shouldn't be planned in past");
+        // ...and by adding it to current unix timestamp we get a unix timestamp of the instant the buffer will be played.
+        let playback_unix_timestamp = now + playback_delay;
 
         // Add possible new sources to the list
         loop {
@@ -131,7 +124,7 @@ impl AudioCallback {
                 Ok(timed_source) => {
                     let delay = timed_source
                         .play_at_timestamp
-                        .checked_sub(buffer_playback_timestamp)
+                        .checked_sub(playback_unix_timestamp)
                         .unwrap_or_else(|| {
                             self.too_early_plays.fetch_add(1, Ordering::SeqCst);
                             Duration::ZERO
@@ -144,29 +137,6 @@ impl AudioCallback {
         }
 
         data_out.iter_mut().for_each(|d| *d = self.mixer.next().unwrap_or(0f32))
-    }
-}
-
-/// An utility struct that anchors stream's internal timestamp to real world UNIX timestamp.
-struct StreamStart {
-    /// Timestamp of the start of stream _playback_ as the `Duration` since the UNIX epoch.
-    realtime: Duration,
-    /// Internal cpal's callback timestamp of stream start.
-    callback: StreamInstant,
-}
-
-impl StreamStart {
-    fn new(stream_timestamp: OutputStreamTimestamp) -> Self {
-        let realtime = current_timestamp();
-        println!(
-            "Audio stream starting at {realtime:?} UNIX timestamp, callback timestamp {:?}, \
-            playback timestamp delayed by {:?} after callback.",
-            stream_timestamp.callback,
-            stream_timestamp.playback.duration_since(&stream_timestamp.callback)
-        );
-
-        // We record _callback_ timestamp for the purposes of fixing playback in real time.
-        Self { realtime, callback: stream_timestamp.callback }
     }
 }
 
