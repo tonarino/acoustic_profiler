@@ -3,7 +3,8 @@ use std::time::Duration;
 
 fn main() {
     log::set_boxed_logger(Box::new(
-        log_probe::LogProbe::new(None, Duration::from_millis(500)).unwrap(),
+        log_probe::LogProbe::new(None, Duration::from_millis(500), log_probe::Mode::Aggregated)
+            .unwrap(),
     ))
     .unwrap();
     log::set_max_level(log::LevelFilter::Trace);
