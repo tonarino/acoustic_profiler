@@ -38,10 +38,6 @@ fn main() -> Result<()> {
 
     loop {
         let result = dtrace.wait_and_consume()?;
-        if result.status == ProgramStatus::Done {
-            break;
-        }
-
         for probe in &result.probes {
             // TODO(skywhale): Use this timestamp.
             let _timestamp: u128 = probe.traces[0].parse()?;
@@ -60,6 +56,9 @@ fn main() -> Result<()> {
             if let Err(err) = client.send(&event) {
                 eprintln!("Could not send event {:?}", err)
             };
+        }
+        if result.status == ProgramStatus::Done {
+            break;
         }
     }
 
