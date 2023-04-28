@@ -1,8 +1,8 @@
 #![warn(clippy::all, clippy::clone_on_ref_ptr)]
 
 use crate::{
+    audio_output::AudioOutput,
     jukebox::{Jukebox, Sample},
-    sound::AudioOutput,
 };
 use clap::Parser;
 use composer_api::{Event, DEFAULT_SERVER_ADDRESS};
@@ -12,8 +12,8 @@ use std::{
     time::{Duration, Instant},
 };
 
+mod audio_output;
 mod jukebox;
-mod sound;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]

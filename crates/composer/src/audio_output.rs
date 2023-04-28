@@ -23,6 +23,10 @@ pub(crate) struct AudioOutput {
     _stream: cpal::Stream,
 }
 
+/// Abstraction to actually produce sound using the [AudioOutput::play()] method.
+/// Uses `cpal` and `rodio` behind the curtains. Great care is taken to position played samples
+/// precisely in time so that sound superposition works well even at high frequencies.
+/// Playback stops when this struct is dropped.
 impl AudioOutput {
     pub(crate) fn new(play_delay: Duration) -> Result<Self> {
         let cpal_device = cpal::default_host()

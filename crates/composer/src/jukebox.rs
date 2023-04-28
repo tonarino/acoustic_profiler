@@ -1,4 +1,4 @@
-use crate::sound::AudioOutput;
+use crate::audio_output::AudioOutput;
 use eyre::{Context, Result};
 use rodio::{
     source::{Buffered, SamplesConverter},
