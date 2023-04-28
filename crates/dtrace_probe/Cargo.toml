@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 color-eyre = "0.6"
-composer = { path = "../composer" }
+clap = { version = "4.2", features = ["derive"] }
+composer_api = { path = "../composer_api" }
 dtrace = { path = "../dtrace" }
 eyre = "0.6"
-structopt = "0.3"

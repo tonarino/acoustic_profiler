@@ -1,11 +1,11 @@
-use composer::api::{Client, Event};
+use clap::Parser;
+use composer_api::{Client, Event};
 use dtrace::{DTrace, ProgramStatus};
 use eyre::Result;
-use structopt::StructOpt;
 
-#[derive(Debug, StructOpt)]
-#[structopt(name = "DTrace Probe", about = "Options for DTrace probe")]
-struct Opt {
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
     #[structopt(short, long)]
     server_address: Option<String>,
 
@@ -16,30 +16,47 @@ struct Opt {
 fn main() -> Result<()> {
     color_eyre::install()?;
 
-    let opt = Opt::from_args();
+    let args = Args::parse();
 
-    let client = match opt.server_address {
+    let client = match args.server_address {
         Some(address) => Client::new(address)?,
         None => Client::try_default()?,
     };
 
     let mut dtrace = DTrace::new()?;
 
-    let pid = opt.process_id;
-    let options = [("bufsize", "1k")];
-    dtrace.execute_program(&format!("syscall:::entry /pid == {pid}/ {{}}"), &options)?;
+    // We need to set the bufsize option explicitly; otherwise we get "Enabling exceeds size of
+    // buffer" error.
+    let options = &[("bufsize", "4m")];
+    let pid = args.process_id;
+    dtrace.execute_program(
+        &format!(
+            "syscall:::entry /pid == {pid}/ {{ trace(walltimestamp); trace(arg0); trace(arg1); }}"
+        ),
+        options,
+    )?;
 
-    let mut probes = Vec::default();
-    while dtrace.wait_and_consume(&mut probes)? != ProgramStatus::Done {
-        for probe in &probes {
+    loop {
+        let result = dtrace.wait_and_consume()?;
+        if result.status == ProgramStatus::Done {
+            break;
+        }
+
+        for probe in &result.probes {
+            // TODO(skywhale): Use this timestamp.
+            let _timestamp: u128 = probe.traces[0].parse()?;
+            let arg0 = &probe.traces[1];
+
             let event = match probe.function_name.as_str() {
                 "read" | "read_nocancel" => Event::FileSystemRead,
-                "write" | "write_nocancel" => Event::FileSystemWrite,
-                func => {
-                    println!("syscall {}", func);
-                    continue;
+                "write" | "write_nocancel" => match arg0.as_str() {
+                    "1" => Event::StdoutWrite { length: 0 },
+                    "2" => Event::StderrWrite { length: 0 },
+                    _ => Event::FileSystemWrite,
                 },
+                _ => continue,
             };
+
             if let Err(err) = client.send(&event) {
                 eprintln!("Could not send event {:?}", err)
             };

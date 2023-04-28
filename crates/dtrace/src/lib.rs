@@ -107,7 +107,8 @@ extern "C" fn trace_callback(
     trace_data_raw: *const sys::dtrace_bufdata_t,
     user_ptr: *mut std::ffi::c_void,
 ) -> i32 {
-    let trace_data = c_char_to_string(unsafe { *trace_data_raw }.dtbda_buffered);
+    let trace_data =
+        c_char_to_string(unsafe { *trace_data_raw }.dtbda_buffered).trim_start().to_string();
 
     let dtrace: &mut DTrace = unsafe { &mut *(user_ptr as *mut DTrace) };
     dtrace.probes.last_mut().unwrap().traces.push(trace_data);
@@ -140,7 +141,11 @@ impl DTrace {
     /// Available DTrace options:
     /// https://docs.oracle.com/en/operating-systems/solaris/oracle-solaris/11.4/dtrace-guide/consumer-options.html
     // TODO(skywhale): Define DtraceOption to get type safety.
-    pub fn execute_program(&mut self, program: &str, options: &[(&str, &str)]) -> Result<(), Error> {
+    pub fn execute_program(
+        &mut self,
+        program: &str,
+        options: &[(&str, &str)],
+    ) -> Result<(), Error> {
         let program = CString::new(program).expect("CString::new failed");
         let prog = unsafe {
             sys::dtrace_program_strcompile(
@@ -170,9 +175,7 @@ impl DTrace {
         }
 
         let user_ptr = &mut *self as *mut _ as *mut std::ffi::c_void;
-        if unsafe {
-            sys::dtrace_handle_buffered(self.inner, Some(trace_callback), user_ptr)
-        } == -1
+        if unsafe { sys::dtrace_handle_buffered(self.inner, Some(trace_callback), user_ptr) } == -1
         {
             return Err(Error::HandlerRegistrationError(self.last_error_message()));
         }
@@ -246,7 +249,7 @@ mod tests {
     fn dtrace_collect_syscalls() -> Result<(), Error> {
         let mut dtrace = DTrace::new()?;
 
-        let options = &[("bufsize", "4m"), ("aggsize", "4m")];
+        let options = &[("bufsize", "4m")];
         dtrace.execute_program(&format!("syscall:::entry {{ trace(timestamp); }}"), options)?;
 
         let result = dtrace.wait_and_consume()?;
