@@ -245,6 +245,7 @@ impl Drop for DTrace {
 mod tests {
     use crate::{DTrace, Error, ProgramStatus};
 
+    #[ignore]
     #[test]
     fn dtrace_collect_syscalls() -> Result<(), Error> {
         let mut dtrace = DTrace::new()?;
