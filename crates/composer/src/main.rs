@@ -56,6 +56,8 @@ fn handle_datagram(
 
         // TODO(Matej): add different sounds for these, and vary some their quality based on length.
         Event::StderrWrite { length: _ } | Event::StdoutWrite { length: _ } => Sample::Click,
+        // TODO(Pablo): Play a sound that scales with the number of reports.
+        Event::LogStats(_) => todo!(),
     };
     jukebox.play(output_stream, sample)?;
 
