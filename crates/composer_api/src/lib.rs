@@ -20,8 +20,33 @@ pub enum Event {
     LogStats(LogStats),
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub enum LogStats {
+    Aggregate(AggregateLogStats),
+    Individual(IndividualLogStats),
+}
+
+/// Each log carries its own timestamp.
 #[derive(Serialize, Deserialize, Debug, Default)]
-pub struct LogStats {
+pub struct IndividualLogStats {
+    // We use duration since the UNIX epoch as a serializable timestamp.
+    pub logs: Vec<(Duration, LogLevel)>,
+}
+
+// FIXME: Duplicates the `log` crate definitions, but it's likely
+// still better than pulling the dependency.
+#[derive(Serialize, Deserialize, Debug)]
+pub enum LogLevel {
+    Error,
+    Warn,
+    Info,
+    Debug,
+    Trace,
+}
+
+/// Logs are aggregated by type (better for very high frequency logging)
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct AggregateLogStats {
     // Duration covered by this report.
     pub span: Duration,
 
