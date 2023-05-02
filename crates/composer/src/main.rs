@@ -63,7 +63,10 @@ fn handle_datagram(
         Event::TestTick => Sample::Clack,
 
         // TODO(Matej): add different sounds for these, and vary some their quality based on length.
-        Event::StderrWrite { length: _ } | Event::StdoutWrite { length: _ } => Sample::Click,
+        Event::StderrWrite { length: _ }
+        | Event::StdoutWrite { length: _ }
+        | Event::FileSystemWrite
+        | Event::FileSystemRead => Sample::Click,
         // TODO(Pablo): Play a sound that scales with the number of reports.
         Event::LogStats(_) => todo!(),
     };

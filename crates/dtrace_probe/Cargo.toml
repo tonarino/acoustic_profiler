@@ -1,0 +1,11 @@
+[package]
+name = "dtrace_probe"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+color-eyre = "0.6"
+clap = { version = "4.2", features = ["derive"] }
+composer_api = { path = "../composer_api" }
+dtrace = { path = "../dtrace" }
+eyre = "0.6"
