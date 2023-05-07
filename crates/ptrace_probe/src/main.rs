@@ -1,5 +1,5 @@
 use clap::Parser;
-use composer_api::{Client, Event};
+use composer_api::{Client, Event, EventKind, EventMessage};
 use eyre::Result;
 use nix::{
     sys::{ptrace, wait::waitpid},
@@ -31,7 +31,8 @@ fn main() -> Result<()> {
     waitpid(Some(pid), None)?;
     loop {
         let Some(event) = handle_syscall(pid)? else { continue; };
-        if let Err(err) = client.send(&event) {
+        let message = EventMessage::with_event(event);
+        if let Err(err) = client.send(&message) {
             eprintln!("Could not send event {:?}", err)
         };
     }
@@ -51,10 +52,12 @@ fn handle_syscall(pid: Pid) -> Result<Option<Event>, color_eyre::Report> {
 
     match (syscall, rdi) {
         (Sysno::write, 1) => {
-            Ok(Some(Event::StdoutWrite { length: ptrace::getregs(pid)?.rax as usize }))
+            let length = ptrace::getregs(pid)?.rax as usize;
+            Ok(Some(Event::new(EventKind::StdoutWrite { length })))
         },
         (Sysno::write, 2) => {
-            Ok(Some(Event::StderrWrite { length: ptrace::getregs(pid)?.rax as usize }))
+            let length = ptrace::getregs(pid)?.rax as usize;
+            Ok(Some(Event::new(EventKind::StderrWrite { length })))
         },
         _ => Ok(None),
     }

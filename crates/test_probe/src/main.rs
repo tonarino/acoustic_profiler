@@ -1,7 +1,7 @@
 #![warn(clippy::all, clippy::clone_on_ref_ptr)]
 
 use clap::Parser;
-use composer_api::{Client, Event};
+use composer_api::{Client, Event, EventKind, EventMessage};
 use eyre::Result;
 use std::{thread, time::Duration};
 
@@ -21,7 +21,8 @@ fn main() -> Result<()> {
         None => Client::try_default(),
     }?;
 
-    let event = Event::TestTick;
+    let event = Event::new(EventKind::TestTick);
+    let message = EventMessage::with_event(event);
 
     // u64 taken by `from_millis` doesn't implement DoubleEndedIterator needed by `rev`
     // Use u32 explicitly and convert to u64.
@@ -29,7 +30,7 @@ fn main() -> Result<()> {
     let speedup = slowdown.clone().rev();
 
     for delay_ms in speedup.chain(slowdown).cycle() {
-        if let Err(err) = client.send(&event) {
+        if let Err(err) = client.send(&message) {
             eprintln!("Could not send event {:?}", err)
         };
         thread::sleep(Duration::from_millis(delay_ms.into()));

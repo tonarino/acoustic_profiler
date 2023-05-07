@@ -26,6 +26,11 @@ impl EventMessage {
     pub fn new() -> Self {
         Self::default()
     }
+
+    pub fn with_event(event: Event) -> Self {
+        let events = vec![event];
+        Self { events }
+    }
 }
 
 impl Default for EventMessage {
