@@ -4,8 +4,7 @@ use rodio::{
     source::{Buffered, SamplesConverter},
     Decoder, Source,
 };
-use std::time::Duration;
-use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
+use std::{collections::HashMap, fs::File, io::BufReader, path::Path, time::Duration};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum Sample {

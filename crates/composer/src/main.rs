@@ -1,9 +1,9 @@
 #![warn(clippy::all, clippy::clone_on_ref_ptr)]
 
-use crate::util::current_timestamp;
 use crate::{
     audio_output::AudioOutput,
     jukebox::{Jukebox, Sample},
+    util::current_timestamp,
 };
 use clap::Parser;
 use composer_api::{EventKind, EventMessage, DEFAULT_SERVER_ADDRESS};
