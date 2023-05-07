@@ -23,8 +23,8 @@ pub struct EventMessage {
 }
 
 impl EventMessage {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(events: Vec<Event>) -> Self {
+        Self { events }
     }
 
     pub fn with_event(event: Event) -> Self {
@@ -76,21 +76,12 @@ pub enum EventKind {
     FileSystemRead,
     /// A write() syscall invocation to a file other than stdout/stderr.
     FileSystemWrite,
+    /// A log() invocation at a specified severity level.
+    Log {
+        level: LogLevel,
+    },
     /// Logging events for a specific duration.
     LogStats(LogStats),
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub enum LogStats {
-    Aggregate(AggregateLogStats),
-    Individual(IndividualLogStats),
-}
-
-/// Each log carries its own timestamp.
-#[derive(Serialize, Deserialize, Debug, Default)]
-pub struct IndividualLogStats {
-    // We use duration since the UNIX epoch as a serializable timestamp.
-    pub logs: Vec<(Duration, LogLevel)>,
 }
 
 // FIXME: Duplicates the `log` crate definitions, but it's likely
@@ -106,7 +97,7 @@ pub enum LogLevel {
 
 /// Logs are aggregated by type (better for very high frequency logging)
 #[derive(Serialize, Deserialize, Debug, Default)]
-pub struct AggregateLogStats {
+pub struct LogStats {
     // Duration covered by this report.
     pub span: Duration,
 

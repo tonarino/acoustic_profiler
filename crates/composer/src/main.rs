@@ -71,6 +71,7 @@ fn handle_datagram(
             | EventKind::FileSystemWrite
             | EventKind::FileSystemRead => Sample::Click,
             // TODO(Pablo): Play a sound that scales with the number of reports.
+            EventKind::Log { level: _ } => todo!(),
             EventKind::LogStats(_) => todo!(),
         };
         let timestamp = event.timestamp.unwrap_or_else(current_timestamp);

@@ -1,6 +1,4 @@
-use composer_api::{
-    self, AggregateLogStats, Client, Event, EventKind, EventMessage, IndividualLogStats, LogStats,
-};
+use composer_api::{self, Client, Event, EventKind, EventMessage, LogStats};
 use log::{self, Level};
 use std::{
     sync::{
@@ -90,7 +88,7 @@ fn spawn_aggregated_mode_thread(
     client: Client,
     shutdown: Arc<AtomicBool>,
 ) {
-    let mut log_stats = AggregateLogStats::default();
+    let mut log_stats = LogStats::default();
     let mut report_start = Instant::now();
 
     std::thread::spawn(move || {
@@ -105,9 +103,8 @@ fn spawn_aggregated_mode_thread(
                 },
                 AggregatorMessage::Tick => {
                     log_stats.span = report_start.elapsed();
-                    let event = Event::new(EventKind::LogStats(LogStats::Aggregate(log_stats)));
-                    let message = EventMessage::with_event(event);
-                    if let Err(err) = client.send(&message) {
+                    let event = Event::new(EventKind::LogStats(log_stats));
+                    if let Err(err) = client.send(&EventMessage::with_event(event)) {
                         eprintln!("Could not send event {:?}", err)
                     }
                     log_stats = Default::default();
@@ -123,7 +120,7 @@ fn spawn_individual_mode_thread(
     client: Client,
     shutdown: Arc<AtomicBool>,
 ) {
-    let mut log_stats = IndividualLogStats::default();
+    let mut events = Vec::new();
 
     std::thread::spawn(move || {
         for message in rx {
@@ -132,30 +129,32 @@ fn spawn_individual_mode_thread(
             }
 
             match message {
-                AggregatorMessage::AddRecord(record) => log_stats.logs.push((
-                    UNIX_EPOCH.elapsed().expect("Failed to calculate timestamp"),
-                    match record {
+                AggregatorMessage::AddRecord(record) => {
+                    let level = match record {
                         Level::Error => composer_api::LogLevel::Error,
                         Level::Warn => composer_api::LogLevel::Warn,
                         Level::Info => composer_api::LogLevel::Info,
                         Level::Debug => composer_api::LogLevel::Debug,
                         Level::Trace => composer_api::LogLevel::Trace,
-                    },
-                )),
+                    };
+                    let event = Event::with_timestamp(
+                        EventKind::Log { level },
+                        UNIX_EPOCH.elapsed().expect("Failed to calculate timestamp"),
+                    );
+                    events.push(event);
+                },
                 AggregatorMessage::Tick => {
-                    let event = Event::new(EventKind::LogStats(LogStats::Individual(log_stats)));
-                    let message = EventMessage::with_event(event);
-                    if let Err(err) = client.send(&message) {
+                    if let Err(err) = client.send(&EventMessage::new(events)) {
                         eprintln!("Could not send event {:?}", err)
                     };
-                    log_stats = Default::default();
+                    events = Vec::new();
                 },
             }
         }
     });
 }
 
-fn add_aggregate_record(log_stats: &mut AggregateLogStats, record_level: Level) {
+fn add_aggregate_record(log_stats: &mut LogStats, record_level: Level) {
     match record_level {
         Level::Error => log_stats.error_records += 1,
         Level::Warn => log_stats.warn_records += 1,
