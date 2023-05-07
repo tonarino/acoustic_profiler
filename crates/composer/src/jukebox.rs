@@ -4,6 +4,7 @@ use rodio::{
     source::{Buffered, SamplesConverter},
     Decoder, Source,
 };
+use std::time::Duration;
 use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -49,12 +50,12 @@ impl Jukebox {
         Ok(Self { samples })
     }
 
-    pub(crate) fn play(&self, audio_output: &AudioOutput, sample: Sample) {
+    pub(crate) fn play(&self, audio_output: &AudioOutput, sample: Sample, timestamp: Duration) {
         let buffer = self
             .samples
             .get(&sample)
             .expect("programmer error, all possible samples should be loaded");
 
-        audio_output.play(buffer.clone());
+        audio_output.play(buffer.clone(), timestamp);
     }
 }

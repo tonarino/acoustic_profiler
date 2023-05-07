@@ -12,8 +12,52 @@ use std::{
 
 pub const DEFAULT_SERVER_ADDRESS: &str = "localhost:8888";
 
+/// Composer expects `EventMessage` as the incoming probe data.
 #[derive(Serialize, Deserialize, Debug)]
-pub enum Event {
+pub struct EventMessage {
+    /// List of events a probe collected during a specific time window. For a probe generating
+    /// high-frequency events e.g. more than a hundred per second, it's recommended to buffer and
+    /// pack multiple events into a `EventMessage` to avoid overflowing the socket and reduce
+    /// packet overhead.
+    pub events: Vec<Event>,
+}
+
+impl EventMessage {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl Default for EventMessage {
+    fn default() -> Self {
+        let events = Vec::default();
+        Self { events }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Event {
+    /// Type of the event.
+    pub kind: EventKind,
+
+    /// Optional timestamp of the event, as the duration since UNIX epoch.
+    pub timestamp: Option<Duration>,
+}
+
+impl Event {
+    pub fn new(kind: EventKind) -> Self {
+        let timestamp = None;
+        Self { kind, timestamp }
+    }
+
+    pub fn with_timestamp(kind: EventKind, timestamp: Duration) -> Self {
+        let timestamp = Some(timestamp);
+        Self { kind, timestamp }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum EventKind {
     TestTick,
     /// A write() syscall invocation to stdout.
     StdoutWrite {
@@ -85,8 +129,8 @@ impl Client {
         Ok(Self { socket })
     }
 
-    pub fn send(&self, event: &Event) -> Result<()> {
-        let data = bincode::serialize(event)?;
+    pub fn send(&self, message: &EventMessage) -> Result<()> {
+        let data = bincode::serialize(message)?;
         self.socket.send(&data)?;
         Ok(())
     }

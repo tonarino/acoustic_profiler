@@ -1,3 +1,4 @@
+use crate::util::current_timestamp;
 use cpal::{
     traits::{DeviceTrait, HostTrait},
     OutputCallbackInfo, OutputStreamTimestamp, SampleFormat,
@@ -13,7 +14,7 @@ use std::{
         mpsc::{channel, Receiver, Sender, TryRecvError},
         Arc,
     },
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::Duration,
 };
 
 pub(crate) struct AudioOutput {
@@ -66,9 +67,13 @@ impl AudioOutput {
         Ok(Self { source_tx, play_delay, too_early_plays, _stream })
     }
 
-    pub(crate) fn play<S: Source<Item = f32> + Send + 'static>(&self, source: S) {
+    pub(crate) fn play<S: Source<Item = f32> + Send + 'static>(
+        &self,
+        source: S,
+        timestamp: Duration,
+    ) {
         // TODO(Matej): use timestamp from the event itself once we have it.
-        let play_at_timestamp = current_timestamp() + self.play_delay;
+        let play_at_timestamp = timestamp + self.play_delay;
 
         // TODO(Matej): we are in fact double-boxing because DynamicMixerController internally adds
         // another box. But we need a sized type to send it through threads. We could make this
@@ -142,9 +147,4 @@ impl AudioCallback {
 
         data_out.iter_mut().for_each(|d| *d = self.mixer.next().unwrap_or(0f32))
     }
-}
-
-// Get current timestamp as the `Duration` since the UNIX epoch.
-fn current_timestamp() -> Duration {
-    SystemTime::now().duration_since(UNIX_EPOCH).expect("Unable to get current UNIX time")
 }

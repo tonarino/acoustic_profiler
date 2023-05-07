@@ -1,11 +1,12 @@
 #![warn(clippy::all, clippy::clone_on_ref_ptr)]
 
+use crate::util::current_timestamp;
 use crate::{
     audio_output::AudioOutput,
     jukebox::{Jukebox, Sample},
 };
 use clap::Parser;
-use composer_api::{Event, DEFAULT_SERVER_ADDRESS};
+use composer_api::{EventKind, EventMessage, DEFAULT_SERVER_ADDRESS};
 use eyre::{Context, Result};
 use std::{
     net::UdpSocket,
@@ -14,6 +15,7 @@ use std::{
 
 mod audio_output;
 mod jukebox;
+mod util;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -57,20 +59,23 @@ fn handle_datagram(
     let mut buf = [0; 1500];
     let (number_of_bytes, _) = socket.recv_from(&mut buf)?;
 
-    let event: Event = bincode::deserialize(&buf[..number_of_bytes])?;
+    let message: EventMessage = bincode::deserialize(&buf[..number_of_bytes])?;
 
-    let sample = match event {
-        Event::TestTick => Sample::Clack,
+    for event in message.events {
+        let sample = match event.kind {
+            EventKind::TestTick => Sample::Clack,
 
-        // TODO(Matej): add different sounds for these, and vary some their quality based on length.
-        Event::StderrWrite { length: _ }
-        | Event::StdoutWrite { length: _ }
-        | Event::FileSystemWrite
-        | Event::FileSystemRead => Sample::Click,
-        // TODO(Pablo): Play a sound that scales with the number of reports.
-        Event::LogStats(_) => todo!(),
-    };
-    jukebox.play(audio_output, sample);
+            // TODO(Matej): add different sounds for these, and vary some their quality based on length.
+            EventKind::StderrWrite { length: _ }
+            | EventKind::StdoutWrite { length: _ }
+            | EventKind::FileSystemWrite
+            | EventKind::FileSystemRead => Sample::Click,
+            // TODO(Pablo): Play a sound that scales with the number of reports.
+            EventKind::LogStats(_) => todo!(),
+        };
+        let timestamp = event.timestamp.unwrap_or_else(current_timestamp);
+        jukebox.play(audio_output, sample, timestamp);
+    }
 
     Ok(number_of_bytes)
 }
