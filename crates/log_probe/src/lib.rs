@@ -137,10 +137,7 @@ fn spawn_individual_mode_thread(
                         Level::Debug => composer_api::LogLevel::Debug,
                         Level::Trace => composer_api::LogLevel::Trace,
                     };
-                    let event = Event::with_timestamp(
-                        EventKind::Log { level },
-                        UNIX_EPOCH.elapsed().expect("Failed to calculate timestamp"),
-                    );
+                    let event = Event::with_current_timestamp(EventKind::Log { level });
                     events.push(event);
                 },
                 AggregatorMessage::Tick => {

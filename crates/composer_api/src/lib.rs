@@ -48,6 +48,11 @@ impl Event {
         Self { kind, timestamp }
     }
 
+    pub fn with_current_timestamp(kind: EventKind) -> Self {
+        let timestamp = Some(UNIX_EPOCH.elapsed().expect("Failed to calculate timestamp"));
+        Self { kind, timestamp }
+    }
+
     pub fn with_timestamp(kind: EventKind, timestamp: Duration) -> Self {
         let timestamp = Some(timestamp);
         Self { kind, timestamp }
