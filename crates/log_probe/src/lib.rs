@@ -6,7 +6,7 @@ use std::{
         mpsc::{sync_channel, Receiver, SyncSender},
         Arc,
     },
-    time::{Duration, Instant, UNIX_EPOCH},
+    time::{Duration, Instant},
 };
 use thiserror::Error;
 
