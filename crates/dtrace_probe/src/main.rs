@@ -2,6 +2,13 @@ use clap::Parser;
 use composer_api::{Client, Event, EventKind, Packet};
 use dtrace::{DTrace, ProgramStatus};
 use eyre::Result;
+use std::{
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    time::Duration,
+};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -10,13 +17,22 @@ struct Args {
     server_address: Option<String>,
 
     #[structopt(short, long)]
-    process_id: u32,
+    process_id: Option<u32>,
 }
 
 fn main() -> Result<()> {
     color_eyre::install()?;
 
     let args = Args::parse();
+
+    let running = Arc::new(AtomicBool::new(true));
+    ctrlc::set_handler({
+        let running = running.clone();
+        move || {
+            running.store(false, Ordering::SeqCst);
+        }
+    })
+    .expect("Failed to set Ctrl-C handler");
 
     let client = match args.server_address {
         Some(address) => Client::new(address)?,
@@ -28,19 +44,23 @@ fn main() -> Result<()> {
     // We need to set the bufsize option explicitly; otherwise we get "Enabling exceeds size of
     // buffer" error.
     let options = &[("bufsize", "4m")];
-    let pid = args.process_id;
+    let predicate =
+        args.process_id.map(|pid| format!("/pid == {pid}/")).unwrap_or_else(|| "".to_string());
     dtrace.execute_program(
         &format!(
-            "syscall:::entry /pid == {pid}/ {{ trace(walltimestamp); trace(arg0); trace(arg1); }}"
+            "syscall:::entry {predicate} {{ trace(walltimestamp); trace(arg0); trace(arg1); }}"
         ),
         options,
     )?;
 
-    loop {
+    while running.load(Ordering::SeqCst) {
+        let mut packet = Packet::default();
+
         let result = dtrace.wait_and_consume()?;
+
         for probe in &result.probes {
-            // TODO(skywhale): Use this timestamp.
-            let _timestamp: u128 = probe.traces[0].parse()?;
+            let timestamp =
+                Duration::from_nanos(probe.traces[0].parse().expect("Failed to parse timestamp"));
             let arg0 = &probe.traces[1];
 
             let kind = match probe.function_name.as_str() {
@@ -53,7 +73,10 @@ fn main() -> Result<()> {
                 _ => continue,
             };
 
-            let packet = Packet::from_event(Event::new(kind));
+            let event = Event::with_timestamp(kind, timestamp);
+            packet.events.push(event);
+        }
+        if !packet.events.is_empty() {
             if let Err(err) = client.send(&packet) {
                 eprintln!("Could not send event {:?}", err)
             };

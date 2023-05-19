@@ -7,5 +7,6 @@ edition = "2021"
 color-eyre = "0.6"
 clap = { version = "4.2", features = ["derive"] }
 composer_api = { path = "../composer_api" }
+ctrlc = { version = "3.2", features = ["termination"] }
 dtrace = { path = "../dtrace" }
 eyre = "0.6"
