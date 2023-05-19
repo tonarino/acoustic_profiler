@@ -55,7 +55,8 @@ fn main() -> Result<()> {
         let result = dtrace.wait_and_consume()?;
 
         for probe in &result.probes {
-            let timestamp = Duration::from_nanos(probe.traces[0].parse().expect("Failed to parse timestamp"));
+            let timestamp =
+                Duration::from_nanos(probe.traces[0].parse().expect("Failed to parse timestamp"));
             let arg0 = &probe.traces[1];
 
             let kind = match probe.function_name.as_str() {
