@@ -2,9 +2,13 @@ use clap::Parser;
 use composer_api::{Client, Event, EventKind, Packet};
 use dtrace::{DTrace, ProgramStatus};
 use eyre::Result;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use std::time::Duration;
+use std::{
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    time::Duration,
+};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
