@@ -1,5 +1,5 @@
 use clap::Parser;
-use composer_api::{Client, Event};
+use composer_api::{Client, Event, EventKind, Packet};
 use dtrace::{DTrace, ProgramStatus};
 use eyre::Result;
 
@@ -43,17 +43,18 @@ fn main() -> Result<()> {
             let _timestamp: u128 = probe.traces[0].parse()?;
             let arg0 = &probe.traces[1];
 
-            let event = match probe.function_name.as_str() {
-                "read" | "read_nocancel" => Event::FileSystemRead,
+            let kind = match probe.function_name.as_str() {
+                "read" | "read_nocancel" => EventKind::FileSystemRead,
                 "write" | "write_nocancel" => match arg0.as_str() {
-                    "1" => Event::StdoutWrite { length: 0 },
-                    "2" => Event::StderrWrite { length: 0 },
-                    _ => Event::FileSystemWrite,
+                    "1" => EventKind::StdoutWrite { length: 0 },
+                    "2" => EventKind::StderrWrite { length: 0 },
+                    _ => EventKind::FileSystemWrite,
                 },
                 _ => continue,
             };
 
-            if let Err(err) = client.send(&event) {
+            let packet = Packet::from_event(Event::new(kind));
+            if let Err(err) = client.send(&packet) {
                 eprintln!("Could not send event {:?}", err)
             };
         }

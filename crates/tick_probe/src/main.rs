@@ -1,5 +1,5 @@
 use clap::Parser;
-use composer_api::{Client, Event};
+use composer_api::{Client, Event, EventKind, Packet};
 use eyre::Result;
 use std::time::{Duration, Instant};
 
@@ -22,12 +22,13 @@ fn main() -> Result<()> {
         None => Client::try_default(),
     }?;
 
-    let event = Event::TestTick;
+    let event = Event::new(EventKind::TestTick);
+    let packet = Packet::from_event(event);
 
     // Try to prevent drifting away from the given frequency by dynamically computing the sleep duration for each cycle
     let start = Instant::now();
     for deadline in (0..).map(|i| start + Duration::from_secs_f64(i as f64 / args.frequency)) {
-        if let Err(err) = client.send(&event) {
+        if let Err(err) = client.send(&packet) {
             eprintln!("Could not send event {:?}", err)
         };
 

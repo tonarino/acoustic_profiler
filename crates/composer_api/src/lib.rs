@@ -7,13 +7,60 @@ use std::{
         SocketAddr::{V4, V6},
         ToSocketAddrs, UdpSocket,
     },
-    time::Duration,
+    time::{Duration, UNIX_EPOCH},
 };
 
 pub const DEFAULT_SERVER_ADDRESS: &str = "localhost:8888";
 
+/// Composer expects `Packet` as the incoming probe data.
+#[derive(Serialize, Deserialize, Default, Debug)]
+pub struct Packet {
+    /// List of events a probe collected during a specific time window. For a probe generating
+    /// high-frequency events e.g. more than a hundred per second, it's recommended to buffer and
+    /// pack multiple events into a `Packet` to avoid overflowing the socket and reduce
+    /// packet overhead.
+    pub events: Vec<Event>,
+}
+
+impl Packet {
+    pub fn new(events: Vec<Event>) -> Self {
+        Self { events }
+    }
+
+    pub fn from_event(event: Event) -> Self {
+        let events = vec![event];
+        Self { events }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
-pub enum Event {
+pub struct Event {
+    /// Type of the event.
+    pub kind: EventKind,
+
+    /// Optional timestamp of the event, as the duration since UNIX epoch.
+    pub timestamp: Option<Duration>,
+}
+
+impl Event {
+    pub fn new(kind: EventKind) -> Self {
+        let timestamp = None;
+        Self { kind, timestamp }
+    }
+
+    pub fn with_current_timestamp(kind: EventKind) -> Self {
+        let timestamp = Some(UNIX_EPOCH.elapsed().expect("Failed to calculate timestamp"));
+        Self { kind, timestamp }
+    }
+
+    pub fn with_timestamp(kind: EventKind, timestamp: Duration) -> Self {
+        let timestamp = Some(timestamp);
+        Self { kind, timestamp }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum EventKind {
     TestTick,
     /// A write() syscall invocation to stdout.
     StdoutWrite {
@@ -27,21 +74,12 @@ pub enum Event {
     FileSystemRead,
     /// A write() syscall invocation to a file other than stdout/stderr.
     FileSystemWrite,
+    /// A log() invocation at a specified severity level.
+    Log {
+        level: LogLevel,
+    },
     /// Logging events for a specific duration.
     LogStats(LogStats),
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub enum LogStats {
-    Aggregate(AggregateLogStats),
-    Individual(IndividualLogStats),
-}
-
-/// Each log carries its own timestamp.
-#[derive(Serialize, Deserialize, Debug, Default)]
-pub struct IndividualLogStats {
-    // We use duration since the UNIX epoch as a serializable timestamp.
-    pub logs: Vec<(Duration, LogLevel)>,
 }
 
 // FIXME: Duplicates the `log` crate definitions, but it's likely
@@ -57,7 +95,7 @@ pub enum LogLevel {
 
 /// Logs are aggregated by type (better for very high frequency logging)
 #[derive(Serialize, Deserialize, Debug, Default)]
-pub struct AggregateLogStats {
+pub struct LogStats {
     // Duration covered by this report.
     pub span: Duration,
 
@@ -85,8 +123,8 @@ impl Client {
         Ok(Self { socket })
     }
 
-    pub fn send(&self, event: &Event) -> Result<()> {
-        let data = bincode::serialize(event)?;
+    pub fn send(&self, packet: &Packet) -> Result<()> {
+        let data = bincode::serialize(packet)?;
         self.socket.send(&data)?;
         Ok(())
     }
