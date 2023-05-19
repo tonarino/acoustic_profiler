@@ -12,30 +12,23 @@ use std::{
 
 pub const DEFAULT_SERVER_ADDRESS: &str = "localhost:8888";
 
-/// Composer expects `EventMessage` as the incoming probe data.
-#[derive(Serialize, Deserialize, Debug)]
-pub struct EventMessage {
+/// Composer expects `Packet` as the incoming probe data.
+#[derive(Serialize, Deserialize, Default, Debug)]
+pub struct Packet {
     /// List of events a probe collected during a specific time window. For a probe generating
     /// high-frequency events e.g. more than a hundred per second, it's recommended to buffer and
-    /// pack multiple events into a `EventMessage` to avoid overflowing the socket and reduce
+    /// pack multiple events into a `Packet` to avoid overflowing the socket and reduce
     /// packet overhead.
     pub events: Vec<Event>,
 }
 
-impl EventMessage {
+impl Packet {
     pub fn new(events: Vec<Event>) -> Self {
         Self { events }
     }
 
-    pub fn with_event(event: Event) -> Self {
+    pub fn from_event(event: Event) -> Self {
         let events = vec![event];
-        Self { events }
-    }
-}
-
-impl Default for EventMessage {
-    fn default() -> Self {
-        let events = Vec::default();
         Self { events }
     }
 }
@@ -125,8 +118,8 @@ impl Client {
         Ok(Self { socket })
     }
 
-    pub fn send(&self, message: &EventMessage) -> Result<()> {
-        let data = bincode::serialize(message)?;
+    pub fn send(&self, packet: &Packet) -> Result<()> {
+        let data = bincode::serialize(packet)?;
         self.socket.send(&data)?;
         Ok(())
     }

@@ -1,4 +1,4 @@
-use composer_api::{self, Client, Event, EventKind, EventMessage, LogStats};
+use composer_api::{self, Client, Event, EventKind, LogStats, Packet};
 use log::{self, Level};
 use std::{
     sync::{
@@ -104,7 +104,7 @@ fn spawn_aggregated_mode_thread(
                 AggregatorMessage::Tick => {
                     log_stats.span = report_start.elapsed();
                     let event = Event::new(EventKind::LogStats(log_stats));
-                    if let Err(err) = client.send(&EventMessage::with_event(event)) {
+                    if let Err(err) = client.send(&Packet::from_event(event)) {
                         eprintln!("Could not send event {:?}", err)
                     }
                     log_stats = Default::default();
@@ -144,7 +144,7 @@ fn spawn_individual_mode_thread(
                     events.push(event);
                 },
                 AggregatorMessage::Tick => {
-                    if let Err(err) = client.send(&EventMessage::new(events)) {
+                    if let Err(err) = client.send(&Packet::new(events)) {
                         eprintln!("Could not send event {:?}", err)
                     };
                     events = Vec::new();

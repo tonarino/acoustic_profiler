@@ -6,7 +6,7 @@ use crate::{
     util::current_timestamp,
 };
 use clap::Parser;
-use composer_api::{EventKind, EventMessage, DEFAULT_SERVER_ADDRESS};
+use composer_api::{EventKind, Packet, DEFAULT_SERVER_ADDRESS};
 use eyre::{Context, Result};
 use std::{
     net::UdpSocket,
@@ -59,9 +59,9 @@ fn handle_datagram(
     let mut buf = [0; 1500];
     let (number_of_bytes, _) = socket.recv_from(&mut buf)?;
 
-    let message: EventMessage = bincode::deserialize(&buf[..number_of_bytes])?;
+    let packet: Packet = bincode::deserialize(&buf[..number_of_bytes])?;
 
-    for event in message.events {
+    for event in packet.events {
         let sample = match event.kind {
             EventKind::TestTick => Sample::Clack,
 

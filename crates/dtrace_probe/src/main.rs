@@ -1,5 +1,5 @@
 use clap::Parser;
-use composer_api::{Client, Event, EventKind, EventMessage};
+use composer_api::{Client, Event, EventKind, Packet};
 use dtrace::{DTrace, ProgramStatus};
 use eyre::Result;
 
@@ -53,8 +53,8 @@ fn main() -> Result<()> {
                 _ => continue,
             };
 
-            let message = EventMessage::with_event(Event::new(kind));
-            if let Err(err) = client.send(&message) {
+            let packet = Packet::from_event(Event::new(kind));
+            if let Err(err) = client.send(&packet) {
                 eprintln!("Could not send event {:?}", err)
             };
         }

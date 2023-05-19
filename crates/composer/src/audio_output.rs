@@ -67,12 +67,10 @@ impl AudioOutput {
         Ok(Self { source_tx, play_delay, too_early_plays, _stream })
     }
 
-    pub(crate) fn play<S: Source<Item = f32> + Send + 'static>(
-        &self,
-        source: S,
-        timestamp: Duration,
-    ) {
-        // TODO(Matej): use timestamp from the event itself once we have it.
+    pub(crate) fn play<S>(&self, source: S, timestamp: Duration)
+    where
+        S: Source<Item = f32> + Send + 'static,
+    {
         let play_at_timestamp = timestamp + self.play_delay;
 
         // TODO(Matej): we are in fact double-boxing because DynamicMixerController internally adds
