@@ -3,10 +3,9 @@
 use crate::{
     audio_output::AudioOutput,
     jukebox::{Jukebox, Sample},
-    util::current_timestamp,
 };
 use clap::Parser;
-use composer_api::{EventKind, Packet, DEFAULT_SERVER_ADDRESS};
+use composer_api::{util::current_timestamp, EventKind, Packet, DEFAULT_SERVER_ADDRESS};
 use eyre::{Context, Result};
 use std::{
     net::UdpSocket,
@@ -15,7 +14,6 @@ use std::{
 
 mod audio_output;
 mod jukebox;
-mod util;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
