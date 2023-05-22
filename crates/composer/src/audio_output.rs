@@ -1,4 +1,4 @@
-use crate::util::current_timestamp;
+use composer_api::util::current_timestamp;
 use cpal::{
     traits::{DeviceTrait, HostTrait},
     OutputCallbackInfo, OutputStreamTimestamp, SampleFormat,
