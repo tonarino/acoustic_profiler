@@ -27,7 +27,7 @@ fn main() -> Result<()> {
 
     // Try to prevent drifting away from the given frequency by dynamically computing the sleep duration for each cycle
     let start = Instant::now();
-    for deadline in (0..).map(|i| start + Duration::from_secs_f64(i as f64 / args.frequency)) {
+    for deadline in (1..).map(|i| start + Duration::from_secs_f64(i as f64 / args.frequency)) {
         if let Err(err) = client.send(&packet) {
             eprintln!("Could not send event {:?}", err)
         };
