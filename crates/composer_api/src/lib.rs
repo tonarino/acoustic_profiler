@@ -10,6 +10,8 @@ use std::{
     time::{Duration, UNIX_EPOCH},
 };
 
+pub mod util;
+
 pub const DEFAULT_SERVER_ADDRESS: &str = "localhost:8888";
 
 /// Composer expects `Packet` as the incoming probe data.

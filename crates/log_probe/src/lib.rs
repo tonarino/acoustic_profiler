@@ -69,7 +69,7 @@ fn spawn_tick_thread(
 ) {
     std::thread::spawn(move || {
         let start = Instant::now();
-        for deadline in (0..).map(|i| start + i * report_period) {
+        for deadline in (1..).map(|i| start + i * report_period) {
             if let Err(e) = tx.try_send(AggregatorMessage::Tick) {
                 eprintln!("Failed to communicate with aggregator thread: {e}")
             }

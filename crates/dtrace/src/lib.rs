@@ -251,11 +251,11 @@ mod tests {
         let mut dtrace = DTrace::new()?;
 
         let options = &[("bufsize", "4m")];
-        dtrace.execute_program(&format!("syscall:::entry {{ trace(timestamp); }}"), options)?;
+        dtrace.execute_program("syscall:::entry { trace(timestamp); }", options)?;
 
         let result = dtrace.wait_and_consume()?;
         assert_eq!(ProgramStatus::Ongoing, result.status);
-        assert!(result.probes.len() > 0);
+        assert!(!result.probes.is_empty());
 
         dtrace.stop()?;
 
