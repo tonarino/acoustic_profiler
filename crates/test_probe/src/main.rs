@@ -68,7 +68,7 @@ fn constant_frequency(frequency: f64, send: impl Fn(&Packet)) -> ! {
     let packet = Packet::from_event(event);
     // Prevent drifting away from the given frequency by computing the sleep duration for each cycle.
     let start = Instant::now();
-    for deadline in (0..).map(|i| start + Duration::from_secs_f64(i as f64 / frequency)) {
+    for deadline in (1..).map(|i| start + Duration::from_secs_f64(i as f64 / frequency)) {
         send(&packet);
         sleep(deadline.saturating_duration_since(Instant::now()));
     }
@@ -104,7 +104,7 @@ fn burst(burst_period: Duration, events_per_burst: u32, send: impl Fn(&Packet)) 
 
     // Prevent drifting away from the given frequency by computing the sleep duration for each cycle.
     let start = Instant::now();
-    for deadline in (0..).map(|i| start + i * burst_period) {
+    for deadline in (1..).map(|i| start + i * burst_period) {
         let events = event_generator.by_ref().take(events_per_burst as usize).collect();
         let packet = Packet::new(events);
         send(&packet);
