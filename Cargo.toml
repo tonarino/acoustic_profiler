@@ -15,7 +15,6 @@ default-members = [
     "crates/composer_api",
     "crates/composer",
     "crates/test_probe",
-    "crates/ptrace_probe",
     "crates/log_probe",
 ]
 
