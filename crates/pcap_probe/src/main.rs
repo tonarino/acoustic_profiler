@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use clap::{command, Parser};
 use composer_api::{Client, Event, EventKind, Packet};
-use eyre::Result;
+use eyre::{eyre, Context, Result};
 use pcap::Capture;
 
 #[derive(Parser)]
@@ -26,15 +26,15 @@ fn main() -> Result<()> {
     }?;
 
     let device = pcap::Device::lookup()
-        .expect("cal list devices")
-        .expect("there's a default network device");
+        .context("cal list devices")?
+        .ok_or(eyre!("no default device found"))?;
     println!("using device: {device:?}");
 
     let mut capture = Capture::from_device(device)
         .unwrap()
         .immediate_mode(true)
         .open()
-        .expect("can open the device for capture");
+        .context("can open the device for capture")?;
 
     // TODO: consider batching
     while let Ok(cap) = capture.next_packet() {
