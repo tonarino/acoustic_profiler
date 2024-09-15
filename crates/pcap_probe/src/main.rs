@@ -36,6 +36,7 @@ fn main() -> Result<()> {
         .open()
         .expect("can open the device for capture");
 
+    // TODO: consider batching
     while let Ok(cap) = capture.next_packet() {
         let ts = Duration::new(
             cap.header.ts.tv_sec.unsigned_abs(),
@@ -43,6 +44,7 @@ fn main() -> Result<()> {
             cap.header.ts.tv_usec.unsigned_abs() * 1000,
         );
 
+        // TODO: use size of the packet to vary the event "strength"
         let event = Event::with_timestamp(EventKind::TestTick, ts);
 
         if let Err(err) = client.send(&Packet::from_event(event)) {
