@@ -30,7 +30,9 @@ fn main() -> Result<()> {
     ptrace::attach(pid)?;
     waitpid(Some(pid), None)?;
     loop {
-        let Some(event) = handle_syscall(pid)? else { continue; };
+        let Some(event) = handle_syscall(pid)? else {
+            continue;
+        };
         let packet = Packet::from_event(event);
         if let Err(err) = client.send(&packet) {
             eprintln!("Could not send event {:?}", err)
