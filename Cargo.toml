@@ -8,6 +8,7 @@ members = [
     "crates/test_probe",
     "crates/ptrace_probe",
     "crates/log_probe",
+    "crates/pcap_probe",
 ]
 
 # Specify a subset of member crates that compile on all supported architectures.
@@ -16,6 +17,7 @@ default-members = [
     "crates/composer",
     "crates/test_probe",
     "crates/log_probe",
+    "crates/pcap_probe",
 ]
 
 # Explicitly set resolver due to virtual workspace, see
